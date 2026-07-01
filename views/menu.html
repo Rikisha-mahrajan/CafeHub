@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CafeHub - Menu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar { background-color: #ff6600; }
+        .card-img-top { height: 160px; object-fit: cover; background: #eee; }
+        .card:hover { transform: scale(1.02); transition: 0.2s; }
+        .btn-order { background-color: #ff6600; border: none; color: white; width: 100%; }
+        .btn-order:hover { background-color: #e65c00; color: white; }
+        .badge-unavailable { background-color: #999; }
+        #cart-count {
+            background: white; color: #ff6600; border-radius: 50%;
+            padding: 2px 7px; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark px-4 py-3">
+        <span class="navbar-brand fw-bold">🍽️ CafeHub Menu</span>
+        <div>
+            <a href="/views/my-orders.html" class="btn btn-outline-light me-2">My Orders</a>
+            <a href="/views/profile.html" class="btn btn-outline-light me-2">Profile</a>
+            <button class="btn btn-light me-2" onclick="viewCart()">🛒 Cart <span id="cart-count">0</span></button>
+            <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="menu-container" class="row g-4"></div>
+    </div>
+
+    <div class="modal fade" id="cartModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Your Cart</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="cart-items"></div>
+                <div class="modal-footer">
+                    <strong>Total: Rs. <span id="cart-total">0</span></strong>
+                    <button class="btn btn-success" onclick="placeOrder()">Place Order</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let cart = [];
+
+        async function loadMenu() {
+            const res = await fetch('/menu');
+            const items = await res.json();
+            const container = document.getElementById('menu-container');
+
+            if (items.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted">No menu items available yet.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            items.forEach(item => {
+                const imgSrc = item.image_url || 'https://via.placeholder.com/300x160?text=No+Image';
+                const isAvailable = item.availability === 1;
+                container.innerHTML += `
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <img src="${imgSrc}" class="card-img-top" alt="${item.name}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <h5 class="card-title">${item.name}</h5>
+                                    ${!isAvailable ? '<span class="badge badge-unavailable">Out of Stock</span>' : ''}
+                                </div>
+                                <p class="card-text text-muted">${item.description || ''}</p>
+                                <p class="fw-bold">Rs. ${item.price}</p>
+                                <button class="btn btn-order" 
+                                    onclick="addToCart(${item.id}, '${item.name}', ${item.price})"
+                                    ${!isAvailable ? 'disabled' : ''}>
+                                    ${isAvailable ? 'Add to Cart' : 'Unavailable'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function addToCart(id, name, price) {
+            const existing = cart.find(i => i.id === id);
+            if (existing) existing.quantity++;
+            else cart.push({ id, name, price, quantity: 1 });
+            document.getElementById('cart-count').textContent = cart.reduce((a, i) => a + i.quantity, 0);
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id !== id);
+            document.getElementById('cart-count').textContent = cart.reduce((a, i) => a + i.quantity, 0);
+            renderCart();
+        }
+
+        function renderCart() {
+            const total = cart.reduce((a, i) => a + i.price * i.quantity, 0);
+            document.getElementById('cart-total').textContent = total;
+
+            if (cart.length === 0) {
+                document.getElementById('cart-items').innerHTML = '<p>Your cart is empty.</p>';
+            } else {
+                document.getElementById('cart-items').innerHTML = cart.map(i =>
+                    `<div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>${i.name} x${i.quantity}</span>
+                        <div>
+                            <span class="me-3">Rs. ${i.price * i.quantity}</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${i.id})">Remove</button>
+                        </div>
+                    </div>`
+                ).join('');
+            }
+        }
+
+        function viewCart() {
+            renderCart();
+            new bootstrap.Modal(document.getElementById('cartModal')).show();
+        }
+
+        async function placeOrder() {
+            if (cart.length === 0) return alert('Cart is empty!');
+            const total = cart.reduce((a, i) => a + i.price * i.quantity, 0);
+
+            const res = await fetch('/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: cart, total_amount: total })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
+                const goPay = confirm('Order placed! Pay now with eSewa?');
+                if (goPay) {
+                    initiatePayment(data.order_id);
+                } else {
+                    cart = [];
+                    document.getElementById('cart-count').textContent = 0;
+                    window.location.href = '/views/my-orders.html';
+                }
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function initiatePayment(orderId) {
+            const res = await fetch(`/payment/initiate/${orderId}`, { method: 'POST' });
+            const data = await res.json();
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = data.gatewayUrl;
+
+            Object.entries(data.fields).forEach(([key, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        loadMenu();
+    </script>
+</body>
+</html>

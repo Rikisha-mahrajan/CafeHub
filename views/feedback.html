@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CafeHub - Feedback</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar { background-color: #ff6600; }
+        .feedback-card { max-width: 500px; margin: 40px auto; padding: 30px; border-radius: 10px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .btn-primary { background-color: #ff6600; border-color: #ff6600; width: 100%; }
+        .btn-primary:hover { background-color: #e65c00; }
+        .star-rating { font-size: 40px; cursor: pointer; letter-spacing: 5px; }
+        .star { color: #ccc; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark px-4 py-3">
+        <span class="navbar-brand fw-bold">🍽️ CafeHub</span>
+        <div>
+            <a href="/views/my-orders.html" class="btn btn-outline-light me-2">My Orders</a>
+            <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
+        </div>
+    </nav>
+
+    <div class="feedback-card">
+        <h3 class="mb-4">Leave Feedback</h3>
+        <div id="message"></div>
+        <div class="mb-3 text-center">
+            <label class="form-label d-block">Your Rating</label>
+            <div class="star-rating" id="star-container">
+                <span class="star" data-value="1">★</span>
+                <span class="star" data-value="2">★</span>
+                <span class="star" data-value="3">★</span>
+                <span class="star" data-value="4">★</span>
+                <span class="star" data-value="5">★</span>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Comment</label>
+            <textarea id="comment" class="form-control" rows="4" placeholder="Tell us about your experience..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="submitFeedback()">Submit Feedback</button>
+    </div>
+
+    <script>
+        let selectedRating = 0;
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('order_id');
+
+        const stars = document.querySelectorAll('.star');
+
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                selectedRating = parseInt(star.getAttribute('data-value'));
+                stars.forEach(s => {
+                    if (parseInt(s.getAttribute('data-value')) <= selectedRating) {
+                        s.style.color = '#ffc107';
+                    } else {
+                        s.style.color = '#ccc';
+                    }
+                });
+            });
+
+            star.addEventListener('mouseover', () => {
+                const hoverVal = parseInt(star.getAttribute('data-value'));
+                stars.forEach(s => {
+                    s.style.color = parseInt(s.getAttribute('data-value')) <= hoverVal ? '#ffc107' : '#ccc';
+                });
+            });
+
+            star.addEventListener('mouseout', () => {
+                stars.forEach(s => {
+                    s.style.color = parseInt(s.getAttribute('data-value')) <= selectedRating ? '#ffc107' : '#ccc';
+                });
+            });
+        });
+
+        async function submitFeedback() {
+            if (selectedRating === 0) {
+                document.getElementById('message').innerHTML = '<div class="alert alert-warning">Please select a rating</div>';
+                return;
+            }
+
+            const comment = document.getElementById('comment').value;
+
+            const res = await fetch('/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderId, rating: selectedRating, comment })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById('message').innerHTML = '<div class="alert alert-success">Thank you for your feedback!</div>';
+                setTimeout(() => window.location.href = '/views/my-orders.html', 1500);
+            } else {
+                document.getElementById('message').innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

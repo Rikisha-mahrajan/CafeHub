@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CafeHub - Staff Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar { background-color: #20c997; }
+        .nav-tabs .nav-link.active { background-color: #20c997; color: white; }
+        .status-pending { background-color: #6c757d; }
+        .status-accepted { background-color: #0d6efd; }
+        .status-preparing { background-color: #fd7e14; }
+        .status-ready { background-color: #198754; }
+        .status-completed { background-color: #20c997; }
+        .status-cancelled { background-color: #dc3545; }
+        .card-img-top { height: 120px; object-fit: cover; background: #eee; }
+        .btn-success-custom { background-color: #20c997; border-color: #20c997; color: white; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark px-4 py-3">
+        <span class="navbar-brand fw-bold">🍽️ CafeHub Staff</span>
+        <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
+    </nav>
+
+    <div class="container mt-4">
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item"><button class="nav-link active" onclick="showTab('orders')" id="tab-orders">Incoming Orders</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="showTab('today')" id="tab-today">Today's Orders</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="showTab('menu')" id="tab-menu">Manage Menu</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="showTab('feedback')" id="tab-feedback">Feedback</button></li>
+        </ul>
+
+        <!-- Incoming Orders Tab -->
+        <div id="orders-tab">
+            <div id="orders-container"></div>
+        </div>
+
+        <!-- Today's Orders Tab -->
+        <div id="today-tab" style="display:none">
+            <div id="today-container"></div>
+        </div>
+
+        <!-- Menu Management Tab -->
+        <div id="menu-tab" style="display:none">
+            <button class="btn btn-success-custom mb-3" data-bs-toggle="modal" data-bs-target="#menuModal" onclick="openAddModal()">+ Add Menu Item</button>
+            <div id="menu-container" class="row g-3"></div>
+        </div>
+
+        <!-- Feedback Tab -->
+        <div id="feedback-tab" style="display:none">
+            <div id="feedback-container"></div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Menu Item Modal -->
+    <div class="modal fade" id="menuModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Add Menu Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="item-id">
+                    <div class="mb-2">
+                        <label class="form-label">Name</label>
+                        <input type="text" id="item-name" class="form-control">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Description</label>
+                        <textarea id="item-description" class="form-control"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Price (Rs.)</label>
+                        <input type="number" id="item-price" class="form-control">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Category</label>
+                        <input type="text" id="item-category" class="form-control" placeholder="e.g. Snacks, Drinks, Meals">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Image</label>
+                        <input type="file" id="item-image" class="form-control" accept="image/*">
+                    </div>
+                    <div class="mb-2 form-check">
+                        <input type="checkbox" id="item-availability" class="form-check-input" checked>
+                        <label class="form-check-label">Available</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success-custom" onclick="saveMenuItem()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showTab(tab) {
+            ['orders', 'today', 'menu', 'feedback'].forEach(t => {
+                document.getElementById(`${t}-tab`).style.display = t === tab ? 'block' : 'none';
+                document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+            });
+            if (tab === 'orders') loadOrders();
+            if (tab === 'today') loadTodayOrders();
+            if (tab === 'menu') loadMenu();
+            if (tab === 'feedback') loadFeedback();
+        }
+
+        // ---- Incoming Orders ----
+        async function loadOrders() {
+            const res = await fetch('/staff/orders');
+            const orders = await res.json();
+            const container = document.getElementById('orders-container');
+
+            if (orders.length === 0) {
+                container.innerHTML = '<p class="text-muted">No incoming orders right now.</p>';
+                return;
+            }
+
+            container.innerHTML = orders.map(order => `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <h5>Order #${order.id} - ${order.customer_name}</h5>
+                            <span class="badge status-${order.status}">${order.status.toUpperCase()}</span>
+                        </div>
+                        <p class="mb-1">Total: Rs. ${order.total_amount} | Payment: ${order.payment_status === 'paid' ? '✅ Paid' : '❌ Unpaid'}</p>
+                        <p class="text-muted small">${new Date(order.created_at).toLocaleString()}</p>
+                        <div class="d-flex gap-2">
+                            ${order.status === 'pending' ? `<button class="btn btn-sm btn-primary" onclick="acceptOrder(${order.id})">Accept</button>` : ''}
+                            ${order.status === 'accepted' ? `<button class="btn btn-sm btn-warning" onclick="updateStatus(${order.id}, 'preparing')">Mark Preparing</button>` : ''}
+                            ${order.status === 'preparing' ? `<button class="btn btn-sm btn-success" onclick="updateStatus(${order.id}, 'ready')">Mark Ready</button>` : ''}
+                            ${order.status === 'ready' ? `<button class="btn btn-sm btn-success-custom" onclick="updateStatus(${order.id}, 'completed')">Mark Completed</button>` : ''}
+                            <button class="btn btn-sm btn-outline-danger" onclick="updateStatus(${order.id}, 'cancelled')">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function acceptOrder(id) {
+            await fetch(`/staff/orders/${id}/accept`, { method: 'PUT' });
+            loadOrders();
+        }
+
+        async function updateStatus(id, status) {
+            await fetch(`/staff/orders/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            loadOrders();
+        }
+
+        // ---- Today's Orders ----
+        async function loadTodayOrders() {
+            const res = await fetch('/staff/orders/today');
+            const orders = await res.json();
+            const container = document.getElementById('today-container');
+
+            if (orders.length === 0) {
+                container.innerHTML = '<p class="text-muted">No orders today yet.</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="table table-bordered bg-white">
+                    <thead><tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Payment</th><th>Time</th></tr></thead>
+                    <tbody>
+                        ${orders.map(o => `
+                            <tr>
+                                <td>#${o.id}</td>
+                                <td>${o.customer_name}</td>
+                                <td>Rs. ${o.total_amount}</td>
+                                <td><span class="badge status-${o.status}">${o.status}</span></td>
+                                <td>${o.payment_status}</td>
+                                <td>${new Date(o.created_at).toLocaleTimeString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`;
+        }
+
+        // ---- Menu Management ----
+        async function loadMenu() {
+            const res = await fetch('/menu');
+            const items = await res.json();
+            const container = document.getElementById('menu-container');
+
+            container.innerHTML = items.map(item => `
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <img src="${item.image_url || 'https://via.placeholder.com/200x120?text=No+Image'}" class="card-img-top">
+                        <div class="card-body">
+                            <h6>${item.name}</h6>
+                            <p class="small text-muted mb-1">Rs. ${item.price}</p>
+                            <p class="small mb-2">${item.availability ? '🟢 Available' : '🔴 Unavailable'}</p>
+                            <button class="btn btn-sm btn-outline-primary" onclick='editItem(${JSON.stringify(item)})'>Edit</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteItem(${item.id})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add Menu Item';
+            document.getElementById('item-id').value = '';
+            document.getElementById('item-name').value = '';
+            document.getElementById('item-description').value = '';
+            document.getElementById('item-price').value = '';
+            document.getElementById('item-category').value = '';
+            document.getElementById('item-availability').checked = true;
+        }
+
+        function editItem(item) {
+            document.getElementById('modalTitle').textContent = 'Edit Menu Item';
+            document.getElementById('item-id').value = item.id;
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-description').value = item.description || '';
+            document.getElementById('item-price').value = item.price;
+            document.getElementById('item-category').value = item.category || '';
+            document.getElementById('item-availability').checked = item.availability === 1;
+            new bootstrap.Modal(document.getElementById('menuModal')).show();
+        }
+
+        async function saveMenuItem() {
+            const id = document.getElementById('item-id').value;
+            const formData = new FormData();
+            formData.append('name', document.getElementById('item-name').value);
+            formData.append('description', document.getElementById('item-description').value);
+            formData.append('price', document.getElementById('item-price').value);
+            formData.append('category', document.getElementById('item-category').value);
+            formData.append('availability', document.getElementById('item-availability').checked ? 1 : 0);
+
+            const imageFile = document.getElementById('item-image').files[0];
+            if (imageFile) formData.append('image', imageFile);
+
+            const url = id ? `/menu/${id}` : '/menu';
+            const method = id ? 'PUT' : 'POST';
+
+            await fetch(url, { method, body: formData });
+            bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide();
+            loadMenu();
+        }
+
+        async function deleteItem(id) {
+            if (!confirm('Delete this item?')) return;
+            await fetch(`/menu/${id}`, { method: 'DELETE' });
+            loadMenu();
+        }
+
+        // ---- Feedback ----
+        async function loadFeedback() {
+            const res = await fetch('/staff/feedback');
+            const feedbackList = await res.json();
+            const container = document.getElementById('feedback-container');
+
+            if (feedbackList.length === 0) {
+                container.innerHTML = '<p class="text-muted">No feedback yet.</p>';
+                return;
+            }
+
+            container.innerHTML = feedbackList.map(f => `
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <strong>${f.customer_name}</strong> - ${'★'.repeat(f.rating)}${'☆'.repeat(5 - f.rating)}
+                        <p class="mb-0 text-muted">${f.comment || 'No comment'}</p>
+                        <small class="text-muted">${new Date(f.created_at).toLocaleString()}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        loadOrders();
+    </script>
+</body>
+</html>

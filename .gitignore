@@ -1,0 +1,10 @@
+node_modules/
+.env
+package-lock.json
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/

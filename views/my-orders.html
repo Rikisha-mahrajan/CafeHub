@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CafeHub - My Orders</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar { background-color: #ff6600; }
+        .status-pending { background-color: #6c757d; }
+        .status-accepted { background-color: #0d6efd; }
+        .status-preparing { background-color: #fd7e14; }
+        .status-ready { background-color: #198754; }
+        .status-completed { background-color: #20c997; }
+        .status-cancelled { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark px-4 py-3">
+        <span class="navbar-brand fw-bold">🍽️ CafeHub</span>
+        <div>
+            <a href="/views/menu.html" class="btn btn-outline-light me-2">Menu</a>
+            <a href="/views/profile.html" class="btn btn-outline-light me-2">Profile</a>
+            <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h3 class="mb-4">My Orders</h3>
+        <div id="orders-container"></div>
+    </div>
+
+    <script>
+        async function loadOrders() {
+            const res = await fetch('/orders/my-orders');
+            const orders = await res.json();
+            const container = document.getElementById('orders-container');
+
+            if (orders.length === 0) {
+                container.innerHTML = '<p class="text-muted">You have no orders yet.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            for (const order of orders) {
+                const itemsRes = await fetch(`/orders/${order.id}/items`);
+                const items = await itemsRes.json();
+                const itemsList = items.map(i => `${i.name} x${i.quantity}`).join(', ');
+
+                container.innerHTML += `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h5>Order #${order.id}</h5>
+                                <span class="badge status-${order.status}">${order.status.toUpperCase()}</span>
+                            </div>
+                            <p class="text-muted mb-1">${itemsList}</p>
+                            <p class="mb-1">Total: Rs. ${order.total_amount}</p>
+                            <p class="mb-1">Payment: <strong>${order.payment_status === 'paid' ? '✅ Paid' : '❌ Unpaid'}</strong></p>
+                            <p class="text-muted small">${new Date(order.created_at).toLocaleString()}</p>
+                            ${order.payment_status === 'unpaid' ? `<button class="btn btn-sm btn-success" onclick="payNow(${order.id})">Pay with eSewa</button>` : ''}
+                            ${order.status === 'completed' ? `<a href="/views/feedback.html?order_id=${order.id}" class="btn btn-sm btn-outline-primary">Leave Feedback</a>` : ''}
+                        </div>
+                    </div>`;
+            }
+        }
+
+        async function payNow(orderId) {
+            const res = await fetch(`/payment/initiate/${orderId}`, { method: 'POST' });
+            const data = await res.json();
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = data.gatewayUrl;
+
+            Object.entries(data.fields).forEach(([key, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        loadOrders();
+    </script>
+</body>
+</html>
