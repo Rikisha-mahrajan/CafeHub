@@ -82,9 +82,10 @@
                         <input type="text" id="item-category" class="form-control" placeholder="e.g. Snacks, Drinks, Meals">
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">Image</label>
-                        <input type="file" id="item-image" class="form-control" accept="image/*">
-                    </div>
+    <label class="form-label">Image URL</label>
+    <input type="text" id="item-image-url" class="form-control" placeholder="https://example.com/image.jpg">
+    <small class="text-muted">Paste an image URL from Google Images or Unsplash</small>
+</div>
                     <div class="mb-2 form-check">
                         <input type="checkbox" id="item-availability" class="form-check-input" checked>
                         <label class="form-check-label">Available</label>
@@ -208,45 +209,49 @@
         }
 
         function openAddModal() {
-            document.getElementById('modalTitle').textContent = 'Add Menu Item';
-            document.getElementById('item-id').value = '';
-            document.getElementById('item-name').value = '';
-            document.getElementById('item-description').value = '';
-            document.getElementById('item-price').value = '';
-            document.getElementById('item-category').value = '';
-            document.getElementById('item-availability').checked = true;
-        }
+    document.getElementById('modalTitle').textContent = 'Add Menu Item';
+    document.getElementById('item-id').value = '';
+    document.getElementById('item-name').value = '';
+    document.getElementById('item-description').value = '';
+    document.getElementById('item-price').value = '';
+    document.getElementById('item-category').value = '';
+    document.getElementById('item-image-url').value = '';
+    document.getElementById('item-availability').checked = true;
+}
 
-        function editItem(item) {
-            document.getElementById('modalTitle').textContent = 'Edit Menu Item';
-            document.getElementById('item-id').value = item.id;
-            document.getElementById('item-name').value = item.name;
-            document.getElementById('item-description').value = item.description || '';
-            document.getElementById('item-price').value = item.price;
-            document.getElementById('item-category').value = item.category || '';
-            document.getElementById('item-availability').checked = item.availability === 1;
-            new bootstrap.Modal(document.getElementById('menuModal')).show();
-        }
+function editItem(item) {
+    document.getElementById('modalTitle').textContent = 'Edit Menu Item';
+    document.getElementById('item-id').value = item.id;
+    document.getElementById('item-name').value = item.name;
+    document.getElementById('item-description').value = item.description || '';
+    document.getElementById('item-price').value = item.price;
+    document.getElementById('item-category').value = item.category || '';
+    document.getElementById('item-availability').checked = item.availability === 1;
+    document.getElementById('item-image-url').value = item.image_url || '';
+    new bootstrap.Modal(document.getElementById('menuModal')).show();
+}
 
         async function saveMenuItem() {
-            const id = document.getElementById('item-id').value;
-            const formData = new FormData();
-            formData.append('name', document.getElementById('item-name').value);
-            formData.append('description', document.getElementById('item-description').value);
-            formData.append('price', document.getElementById('item-price').value);
-            formData.append('category', document.getElementById('item-category').value);
-            formData.append('availability', document.getElementById('item-availability').checked ? 1 : 0);
+    const id = document.getElementById('item-id').value;
+    const name = document.getElementById('item-name').value;
+    const description = document.getElementById('item-description').value;
+    const price = document.getElementById('item-price').value;
+    const category = document.getElementById('item-category').value;
+    const availability = document.getElementById('item-availability').checked ? 1 : 0;
+    const image_url = document.getElementById('item-image-url').value;
 
-            const imageFile = document.getElementById('item-image').files[0];
-            if (imageFile) formData.append('image', imageFile);
+    const url = id ? `/menu/${id}` : '/menu';
+    const method = id ? 'PUT' : 'POST';
 
-            const url = id ? `/menu/${id}` : '/menu';
-            const method = id ? 'PUT' : 'POST';
+    await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description, price, category, availability, image_url })
+    });
 
-            await fetch(url, { method, body: formData });
-            bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide();
-            loadMenu();
-        }
+    bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide();
+    loadMenu();
+}
 
         async function deleteItem(id) {
             if (!confirm('Delete this item?')) return;
