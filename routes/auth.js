@@ -38,8 +38,9 @@ router.post('/register', async (req, res) => {
                         html: '<div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 30px; border-radius: 10px; border: 1px solid #eee;"><h2 style="color: #ff6600;">Welcome to CafeHub!</h2><p>Hi ' + name + ',</p><p>Please verify your email by clicking the button below:</p><a href="' + verifyUrl + '" style="display: inline-block; background-color: #ff6600; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Verify Email</a><p style="margin-top: 20px; color: #999; font-size: 12px;">If you did not register, ignore this email.</p></div>'
                     });
                 } catch (mailErr) {
-                    console.error('Email send error:', mailErr.message);
-                }
+    console.error('Email send error:', mailErr);
+    return res.status(500).json({ message: 'Failed to send verification email: ' + mailErr.message });
+}
 
                 res.status(201).json({ message: 'Registration successful! Please check your email to verify your account.' });
             }
