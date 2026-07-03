@@ -86,24 +86,42 @@ router.get('/verify/:token', (req, res) => {
     });
 });
 
-router.post('/login', (req, res) => {
-    const { email, password } = req.body;
-    db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-        if (err || results.length === 0)
-            return res.status(401).json({ message: 'Invalid email or password' });
+router.post('/register', async (req, res) => {
+    const { name, email, password, phone, role } = req.body;
+    const allowedRoles = ['student', 'staff', 'admin'];
+    const finalRole = allowedRoles.includes(role) ? role : 'student';
 
-        const user = results[0];
+    try {
+        // Check if email already exists first
+        db.query('SELECT id FROM users WHERE email = ?', [email], async (err, existing) => {
+            if (err) return res.status(500).json({ message: 'Server error' });
+            if (existing.length > 0) return res.status(500).json({ message: 'Email already exists' });
 
-        if (!user.is_verified) {
-            return res.status(401).json({ message: 'Please verify your email before logging in.' });
-        }
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const verificationToken = crypto.randomBytes(32).toString('hex');
+            const verifyUrl = `${process.env.BASE_URL}/auth/verify/${verificationToken}`;
 
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) return res.status(401).json({ message: 'Invalid email or password' });
+            // Send email FIRST before inserting
+            try {
+                await sendVerificationEmail(email, name, verifyUrl);
+            } catch (mailErr) {
+                console.error('Email send error:', mailErr.message);
+                return res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
+            }
 
-        req.session.user = { id: user.id, name: user.name, role: user.role };
-        res.json({ message: 'Login successful', role: user.role });
-    });
+            // Only insert user if email sent successfully
+            db.query(
+                'INSERT INTO users (name, email, password, phone, role, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [name, email, hashedPassword, phone, finalRole, verificationToken, false],
+                (err2) => {
+                    if (err2) return res.status(500).json({ message: 'Email already exists' });
+                    res.status(201).json({ message: 'Registration successful! Please check your email to verify your account.' });
+                }
+            );
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 router.get('/logout', (req, res) => {
