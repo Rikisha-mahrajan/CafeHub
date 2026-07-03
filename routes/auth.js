@@ -2,18 +2,42 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const https = require('https');
 const db = require('../config/db');
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+async function sendVerificationEmail(toEmail, toName, verifyUrl) {
+    const data = JSON.stringify({
+        sender: { name: 'CafeHub', email: 'rikisham552@gmail.com' },
+        to: [{ email: toEmail, name: toName }],
+        subject: 'Verify your CafeHub account',
+        htmlContent: '<div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 30px; border-radius: 10px; border: 1px solid #eee;"><h2 style="color: #ff6600;">Welcome to CafeHub!</h2><p>Hi ' + toName + ',</p><p>Please verify your email by clicking the button below:</p><a href="' + verifyUrl + '" style="display: inline-block; background-color: #ff6600; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Verify Email</a><p style="margin-top: 20px; color: #999; font-size: 12px;">If you did not register, ignore this email.</p></div>'
+    });
+
+    return new Promise((resolve, reject) => {
+        const options = {
+            hostname: 'api.brevo.com',
+            path: '/v3/smtp/email',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': process.env.BREVO_API_KEY
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let body = '';
+            res.on('data', (chunk) => body += chunk);
+            res.on('end', () => {
+                if (res.statusCode === 201) resolve(body);
+                else reject(new Error('Brevo error: ' + body));
+            });
+        });
+
+        req.on('error', reject);
+        req.write(data);
+        req.end();
+    });
+}
 
 router.post('/register', async (req, res) => {
     const { name, email, password, phone, role } = req.body;
@@ -33,16 +57,10 @@ router.post('/register', async (req, res) => {
                 const verifyUrl = `${process.env.BASE_URL}/auth/verify/${verificationToken}`;
 
                 try {
-                    await transporter.sendMail({
-                        from: '"CafeHub" <' + process.env.EMAIL_USER + '>',
-                        to: email,
-                        subject: 'Verify your CafeHub account',
-                        html: '<div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 30px; border-radius: 10px; border: 1px solid #eee;"><h2 style="color: #ff6600;">Welcome to CafeHub!</h2><p>Hi ' + name + ',</p><p>Please verify your email by clicking the button below:</p><a href="' + verifyUrl + '" style="display: inline-block; background-color: #ff6600; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Verify Email</a><p style="margin-top: 20px; color: #999; font-size: 12px;">If you did not register, ignore this email.</p></div>'
-                    });
+                    await sendVerificationEmail(email, name, verifyUrl);
                 } catch (mailErr) {
-    console.error('Email send error:', mailErr);
-    return res.status(500).json({ message: 'Failed to send verification email: ' + mailErr.message });
-}
+                    console.error('Email send error:', mailErr.message);
+                }
 
                 res.status(201).json({ message: 'Registration successful! Please check your email to verify your account.' });
             }
