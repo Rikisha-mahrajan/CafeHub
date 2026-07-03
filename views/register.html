@@ -73,10 +73,10 @@
             });
 
             const data = await res.json();
-            if (res.ok) {
-                document.getElementById('message').innerHTML =
-                    `<div class="alert alert-success">Registration successful! <a href="/">Login here</a></div>`;
-            } else {
+           if (res.ok) {
+    document.getElementById('message').innerHTML =
+        `<div class="alert alert-success">${data.message}</div>`;
+} else {
                 document.getElementById('message').innerHTML =
                     `<div class="alert alert-danger">${data.message}</div>`;
             }
