@@ -18,6 +18,13 @@
         .btn-primary { background-color: #ff6600; border-color: #ff6600; width: 100%; }
         .btn-primary:hover { background-color: #e65c00; }
         h2 { color: #ff6600; text-align: center; margin-bottom: 25px; }
+        .strength-bar {
+            height: 6px;
+            border-radius: 3px;
+            transition: all 0.3s;
+            margin-top: 6px;
+        }
+        .strength-text { font-size: 12px; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -38,7 +45,21 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Password</label>
-            <input type="password" id="password" class="form-control" placeholder="Create a password">
+            <input type="password" id="password" class="form-control" placeholder="Create a password" oninput="checkStrength()">
+            <div class="strength-bar" id="strength-bar" style="background:#eee;"></div>
+            <div class="strength-text" id="strength-text"></div>
+            <ul class="mt-2 small text-muted" id="requirements">
+                <li id="req-length">At least 8 characters</li>
+                <li id="req-upper">At least one uppercase letter</li>
+                <li id="req-lower">At least one lowercase letter</li>
+                <li id="req-number">At least one number</li>
+                <li id="req-special">At least one special character (!@#$%^&*)</li>
+            </ul>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Confirm Password</label>
+            <input type="password" id="confirm-password" class="form-control" placeholder="Confirm your password" oninput="checkMatch()">
+            <div class="small mt-1" id="match-text"></div>
         </div>
         <div class="mb-3">
             <label class="form-label">Register as</label>
@@ -53,16 +74,88 @@
     </div>
 
     <script>
+        function checkStrength() {
+            const password = document.getElementById('password').value;
+            const bar = document.getElementById('strength-bar');
+            const text = document.getElementById('strength-text');
+
+            const hasLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+            document.getElementById('req-length').style.color = hasLength ? 'green' : '#999';
+            document.getElementById('req-upper').style.color = hasUpper ? 'green' : '#999';
+            document.getElementById('req-lower').style.color = hasLower ? 'green' : '#999';
+            document.getElementById('req-number').style.color = hasNumber ? 'green' : '#999';
+            document.getElementById('req-special').style.color = hasSpecial ? 'green' : '#999';
+
+            const score = [hasLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+
+            if (score <= 2) {
+                bar.style.background = '#dc3545';
+                bar.style.width = '33%';
+                text.textContent = '🔴 Weak password';
+                text.style.color = '#dc3545';
+            } else if (score <= 3) {
+                bar.style.background = '#ffc107';
+                bar.style.width = '66%';
+                text.textContent = '🟡 Medium password';
+                text.style.color = '#ffc107';
+            } else {
+                bar.style.background = '#198754';
+                bar.style.width = '100%';
+                text.textContent = '🟢 Strong password';
+                text.style.color = '#198754';
+            }
+        }
+
+        function checkMatch() {
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm-password').value;
+            const matchText = document.getElementById('match-text');
+
+            if (confirm === '') {
+                matchText.textContent = '';
+            } else if (password === confirm) {
+                matchText.textContent = '✅ Passwords match';
+                matchText.style.color = 'green';
+            } else {
+                matchText.textContent = '❌ Passwords do not match';
+                matchText.style.color = 'red';
+            }
+        }
+
         async function register() {
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const phone = document.getElementById('phone').value;
             const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm-password').value;
             const role = document.getElementById('role').value;
 
             if (!name || !email || !password) {
                 document.getElementById('message').innerHTML =
                     `<div class="alert alert-warning">Please fill in all required fields</div>`;
+                return;
+            }
+
+            if (password !== confirm) {
+                document.getElementById('message').innerHTML =
+                    `<div class="alert alert-danger">Passwords do not match</div>`;
+                return;
+            }
+
+            const hasLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+            if (!hasLength || !hasUpper || !hasLower || !hasNumber || !hasSpecial) {
+                document.getElementById('message').innerHTML =
+                    `<div class="alert alert-danger">Password must be at least 8 characters and include uppercase, lowercase, number and special character</div>`;
                 return;
             }
 
@@ -73,10 +166,10 @@
             });
 
             const data = await res.json();
-           if (res.ok) {
-    document.getElementById('message').innerHTML =
-        `<div class="alert alert-success">${data.message}</div>`;
-} else {
+            if (res.ok) {
+                document.getElementById('message').innerHTML =
+                    `<div class="alert alert-success">${data.message}</div>`;
+            } else {
                 document.getElementById('message').innerHTML =
                     `<div class="alert alert-danger">${data.message}</div>`;
             }
