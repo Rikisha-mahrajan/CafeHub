@@ -33,29 +33,24 @@
             <li class="nav-item"><button class="nav-link" onclick="showTab('feedback')" id="tab-feedback">Feedback</button></li>
         </ul>
 
-        <!-- Incoming Orders Tab -->
         <div id="orders-tab">
             <div id="orders-container"></div>
         </div>
 
-        <!-- Today's Orders Tab -->
         <div id="today-tab" style="display:none">
             <div id="today-container"></div>
         </div>
 
-        <!-- Menu Management Tab -->
         <div id="menu-tab" style="display:none">
             <button class="btn btn-success-custom mb-3" data-bs-toggle="modal" data-bs-target="#menuModal" onclick="openAddModal()">+ Add Menu Item</button>
             <div id="menu-container" class="row g-3"></div>
         </div>
 
-        <!-- Feedback Tab -->
         <div id="feedback-tab" style="display:none">
             <div id="feedback-container"></div>
         </div>
     </div>
 
-    <!-- Add/Edit Menu Item Modal -->
     <div class="modal fade" id="menuModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -82,10 +77,10 @@
                         <input type="text" id="item-category" class="form-control" placeholder="e.g. Snacks, Drinks, Meals">
                     </div>
                     <div class="mb-2">
-    <label class="form-label">Image URL</label>
-    <input type="text" id="item-image-url" class="form-control" placeholder="https://example.com/image.jpg">
-    <small class="text-muted">Paste an image URL from Google Images or Unsplash</small>
-</div>
+                        <label class="form-label">Image URL</label>
+                        <input type="text" id="item-image-url" class="form-control" placeholder="https://example.com/image.jpg">
+                        <small class="text-muted">Paste an image URL from Google Images or Unsplash</small>
+                    </div>
                     <div class="mb-2 form-check">
                         <input type="checkbox" id="item-availability" class="form-check-input" checked>
                         <label class="form-check-label">Available</label>
@@ -111,7 +106,6 @@
             if (tab === 'feedback') loadFeedback();
         }
 
-        // ---- Incoming Orders ----
         async function loadOrders() {
             const res = await fetch('/staff/orders');
             const orders = await res.json();
@@ -122,25 +116,35 @@
                 return;
             }
 
-            container.innerHTML = orders.map(order => `
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <h5>Order #${order.id} - ${order.customer_name}</h5>
-                            <span class="badge status-${order.status}">${order.status.toUpperCase()}</span>
+            container.innerHTML = '';
+
+            for (const order of orders) {
+                const itemsRes = await fetch(`/orders/${order.id}/items`);
+                const items = await itemsRes.json();
+                const itemsList = items.map(i => `
+                    <span class="badge bg-light text-dark border me-1">${i.name} x${i.quantity}</span>
+                `).join('');
+
+                container.innerHTML += `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h5>Order #${order.id} - ${order.customer_name}</h5>
+                                <span class="badge status-${order.status}">${order.status.toUpperCase()}</span>
+                            </div>
+                            <div class="mb-2">${itemsList}</div>
+                            <p class="mb-1">Total: Rs. ${order.total_amount} | Payment: ${order.payment_status === 'paid' ? '✅ Paid' : '❌ Unpaid'}</p>
+                            <p class="text-muted small">${new Date(order.created_at).toLocaleString()}</p>
+                            <div class="d-flex gap-2">
+                                ${order.status === 'pending' ? `<button class="btn btn-sm btn-primary" onclick="acceptOrder(${order.id})">Accept</button>` : ''}
+                                ${order.status === 'accepted' ? `<button class="btn btn-sm btn-warning" onclick="updateStatus(${order.id}, 'preparing')">Mark Preparing</button>` : ''}
+                                ${order.status === 'preparing' ? `<button class="btn btn-sm btn-success" onclick="updateStatus(${order.id}, 'ready')">Mark Ready</button>` : ''}
+                                ${order.status === 'ready' ? `<button class="btn btn-sm btn-success-custom" onclick="updateStatus(${order.id}, 'completed')">Mark Completed</button>` : ''}
+                                <button class="btn btn-sm btn-outline-danger" onclick="updateStatus(${order.id}, 'cancelled')">Cancel</button>
+                            </div>
                         </div>
-                        <p class="mb-1">Total: Rs. ${order.total_amount} | Payment: ${order.payment_status === 'paid' ? '✅ Paid' : '❌ Unpaid'}</p>
-                        <p class="text-muted small">${new Date(order.created_at).toLocaleString()}</p>
-                        <div class="d-flex gap-2">
-                            ${order.status === 'pending' ? `<button class="btn btn-sm btn-primary" onclick="acceptOrder(${order.id})">Accept</button>` : ''}
-                            ${order.status === 'accepted' ? `<button class="btn btn-sm btn-warning" onclick="updateStatus(${order.id}, 'preparing')">Mark Preparing</button>` : ''}
-                            ${order.status === 'preparing' ? `<button class="btn btn-sm btn-success" onclick="updateStatus(${order.id}, 'ready')">Mark Ready</button>` : ''}
-                            ${order.status === 'ready' ? `<button class="btn btn-sm btn-success-custom" onclick="updateStatus(${order.id}, 'completed')">Mark Completed</button>` : ''}
-                            <button class="btn btn-sm btn-outline-danger" onclick="updateStatus(${order.id}, 'cancelled')">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+                    </div>`;
+            }
         }
 
         async function acceptOrder(id) {
@@ -157,7 +161,6 @@
             loadOrders();
         }
 
-        // ---- Today's Orders ----
         async function loadTodayOrders() {
             const res = await fetch('/staff/orders/today');
             const orders = await res.json();
@@ -186,7 +189,6 @@
                 </table>`;
         }
 
-        // ---- Menu Management ----
         async function loadMenu() {
             const res = await fetch('/menu');
             const items = await res.json();
@@ -209,49 +211,49 @@
         }
 
         function openAddModal() {
-    document.getElementById('modalTitle').textContent = 'Add Menu Item';
-    document.getElementById('item-id').value = '';
-    document.getElementById('item-name').value = '';
-    document.getElementById('item-description').value = '';
-    document.getElementById('item-price').value = '';
-    document.getElementById('item-category').value = '';
-    document.getElementById('item-image-url').value = '';
-    document.getElementById('item-availability').checked = true;
-}
+            document.getElementById('modalTitle').textContent = 'Add Menu Item';
+            document.getElementById('item-id').value = '';
+            document.getElementById('item-name').value = '';
+            document.getElementById('item-description').value = '';
+            document.getElementById('item-price').value = '';
+            document.getElementById('item-category').value = '';
+            document.getElementById('item-image-url').value = '';
+            document.getElementById('item-availability').checked = true;
+        }
 
-function editItem(item) {
-    document.getElementById('modalTitle').textContent = 'Edit Menu Item';
-    document.getElementById('item-id').value = item.id;
-    document.getElementById('item-name').value = item.name;
-    document.getElementById('item-description').value = item.description || '';
-    document.getElementById('item-price').value = item.price;
-    document.getElementById('item-category').value = item.category || '';
-    document.getElementById('item-availability').checked = item.availability === 1;
-    document.getElementById('item-image-url').value = item.image_url || '';
-    new bootstrap.Modal(document.getElementById('menuModal')).show();
-}
+        function editItem(item) {
+            document.getElementById('modalTitle').textContent = 'Edit Menu Item';
+            document.getElementById('item-id').value = item.id;
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-description').value = item.description || '';
+            document.getElementById('item-price').value = item.price;
+            document.getElementById('item-category').value = item.category || '';
+            document.getElementById('item-availability').checked = item.availability === 1;
+            document.getElementById('item-image-url').value = item.image_url || '';
+            new bootstrap.Modal(document.getElementById('menuModal')).show();
+        }
 
         async function saveMenuItem() {
-    const id = document.getElementById('item-id').value;
-    const name = document.getElementById('item-name').value;
-    const description = document.getElementById('item-description').value;
-    const price = document.getElementById('item-price').value;
-    const category = document.getElementById('item-category').value;
-    const availability = document.getElementById('item-availability').checked ? 1 : 0;
-    const image_url = document.getElementById('item-image-url').value;
+            const id = document.getElementById('item-id').value;
+            const name = document.getElementById('item-name').value;
+            const description = document.getElementById('item-description').value;
+            const price = document.getElementById('item-price').value;
+            const category = document.getElementById('item-category').value;
+            const availability = document.getElementById('item-availability').checked ? 1 : 0;
+            const image_url = document.getElementById('item-image-url').value;
 
-    const url = id ? `/menu/${id}` : '/menu';
-    const method = id ? 'PUT' : 'POST';
+            const url = id ? `/menu/${id}` : '/menu';
+            const method = id ? 'PUT' : 'POST';
 
-    await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, price, category, availability, image_url })
-    });
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description, price, category, availability, image_url })
+            });
 
-    bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide();
-    loadMenu();
-}
+            bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide();
+            loadMenu();
+        }
 
         async function deleteItem(id) {
             if (!confirm('Delete this item?')) return;
@@ -259,7 +261,6 @@ function editItem(item) {
             loadMenu();
         }
 
-        // ---- Feedback ----
         async function loadFeedback() {
             const res = await fetch('/staff/feedback');
             const feedbackList = await res.json();
