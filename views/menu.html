@@ -91,11 +91,32 @@
         }
 
         function addToCart(id, name, price) {
-            const existing = cart.find(i => i.id === id);
-            if (existing) existing.quantity++;
-            else cart.push({ id, name, price, quantity: 1 });
-            document.getElementById('cart-count').textContent = cart.reduce((a, i) => a + i.quantity, 0);
-        }
+    const existing = cart.find(i => i.id === id);
+    if (existing) existing.quantity++;
+    else cart.push({ id, name, price, quantity: 1 });
+    updateCartCount();
+}
+
+function updateCartCount() {
+    document.getElementById('cart-count').textContent = cart.reduce((a, i) => a + i.quantity, 0);
+}
+
+function increaseQty(id) {
+    const item = cart.find(i => i.id === id);
+    if (item) item.quantity++;
+    updateCartCount();
+    renderCart();
+}
+
+function decreaseQty(id) {
+    const item = cart.find(i => i.id === id);
+    if (item) {
+        item.quantity--;
+        if (item.quantity <= 0) cart = cart.filter(i => i.id !== id);
+    }
+    updateCartCount();
+    renderCart();
+}
 
         function removeFromCart(id) {
             cart = cart.filter(i => i.id !== id);
@@ -103,24 +124,27 @@
             renderCart();
         }
 
-        function renderCart() {
-            const total = cart.reduce((a, i) => a + i.price * i.quantity, 0);
-            document.getElementById('cart-total').textContent = total;
+       function renderCart() {
+    const total = cart.reduce((a, i) => a + i.price * i.quantity, 0);
+    document.getElementById('cart-total').textContent = total;
 
-            if (cart.length === 0) {
-                document.getElementById('cart-items').innerHTML = '<p>Your cart is empty.</p>';
-            } else {
-                document.getElementById('cart-items').innerHTML = cart.map(i =>
-                    `<div class="d-flex justify-content-between align-items-center mb-2">
-                        <span>${i.name} x${i.quantity}</span>
-                        <div>
-                            <span class="me-3">Rs. ${i.price * i.quantity}</span>
-                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${i.id})">Remove</button>
-                        </div>
-                    </div>`
-                ).join('');
-            }
-        }
+    if (cart.length === 0) {
+        document.getElementById('cart-items').innerHTML = '<p>Your cart is empty.</p>';
+    } else {
+        document.getElementById('cart-items').innerHTML = cart.map(i =>
+            `<div class="d-flex justify-content-between align-items-center mb-2">
+                <span>${i.name}</span>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="decreaseQty(${i.id})">−</button>
+                    <span>${i.quantity}</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="increaseQty(${i.id})">+</button>
+                    <span class="ms-2">Rs. ${i.price * i.quantity}</span>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${i.id})">Remove</button>
+                </div>
+            </div>`
+        ).join('');
+    }
+}
 
         function viewCart() {
             renderCart();
