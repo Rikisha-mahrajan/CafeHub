@@ -41,11 +41,12 @@
             <label class="form-label">Comment</label>
             <textarea id="comment" class="form-control" rows="4" placeholder="Tell us about your experience..."></textarea>
         </div>
-        <button class="btn btn-primary" onclick="submitFeedback()">Submit Feedback</button>
+        <button class="btn btn-primary" id="submitBtn" onclick="submitFeedback()">Submit Feedback</button>
     </div>
 
     <script>
         let selectedRating = 0;
+        let submitted = false;
         const urlParams = new URLSearchParams(window.location.search);
         const orderId = urlParams.get('order_id');
 
@@ -55,11 +56,7 @@
             star.addEventListener('click', () => {
                 selectedRating = parseInt(star.getAttribute('data-value'));
                 stars.forEach(s => {
-                    if (parseInt(s.getAttribute('data-value')) <= selectedRating) {
-                        s.style.color = '#ffc107';
-                    } else {
-                        s.style.color = '#ccc';
-                    }
+                    s.style.color = parseInt(s.getAttribute('data-value')) <= selectedRating ? '#ffc107' : '#ccc';
                 });
             });
 
@@ -78,10 +75,16 @@
         });
 
         async function submitFeedback() {
+            if (submitted) return;
+
             if (selectedRating === 0) {
                 document.getElementById('message').innerHTML = '<div class="alert alert-warning">Please select a rating</div>';
                 return;
             }
+
+            submitted = true;
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').textContent = 'Submitting...';
 
             const comment = document.getElementById('comment').value;
 
@@ -96,6 +99,9 @@
                 document.getElementById('message').innerHTML = '<div class="alert alert-success">Thank you for your feedback!</div>';
                 setTimeout(() => window.location.href = '/views/my-orders.html', 1500);
             } else {
+                submitted = false;
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').textContent = 'Submit Feedback';
                 document.getElementById('message').innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
             }
         }
