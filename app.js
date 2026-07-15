@@ -29,7 +29,7 @@ const feedbackRoutes = require('./routes/feedback');
 
 app.use('/auth', authRoutes);
 app.use('/menu', isAuthenticated, menuRoutes);
-app.use('/orders', isAuthenticated, isStudent, orderRoutes);
+app.use('/orders', isAuthenticated, orderRoutes);
 app.use('/admin', isAuthenticated, isAdmin, adminRoutes);
 app.use('/staff', isAuthenticated, isStaffOrAdmin, staffRoutes);
 app.use('/payment', isAuthenticated, paymentRoutes);
