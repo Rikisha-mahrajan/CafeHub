@@ -2,10 +2,20 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 
+// Helper to create notification
+function createNotification(userId, message) {
+    db.query(
+        'INSERT INTO notifications (user_id, message) VALUES (?, ?)',
+        [userId, message],
+        (err) => { if (err) console.error('Notification error:', err.message); }
+    );
+}
+
 // Place an order (student)
 router.post('/', (req, res) => {
     const { items, total_amount } = req.body;
     const user_id = req.session.user?.id;
+    const user_name = req.session.user?.name;
     if (!user_id) return res.status(401).json({ message: 'Not logged in' });
 
     db.query(
@@ -24,13 +34,23 @@ router.post('/', (req, res) => {
             }));
 
             Promise.all(itemInserts)
-                .then(() => res.json({ message: 'Order placed successfully', order_id }))
+                .then(() => {
+                    // Notify all staff about new order
+                    db.query('SELECT id FROM users WHERE role = ? OR role = ?', ['staff', 'admin'], (err, staffUsers) => {
+                        if (!err) {
+                            staffUsers.forEach(staff => {
+                                createNotification(staff.id, `New order #${order_id} placed by ${user_name}`);
+                            });
+                        }
+                    });
+                    res.json({ message: 'Order placed successfully', order_id });
+                })
                 .catch(() => res.status(500).json({ message: 'Error saving order items' }));
         }
     );
 });
 
-// Get logged-in student's own orders (history)
+// Get logged-in student's own orders
 router.get('/my-orders', (req, res) => {
     const user_id = req.session.user?.id;
     if (!user_id) return res.status(401).json({ message: 'Not logged in' });
@@ -45,7 +65,7 @@ router.get('/my-orders', (req, res) => {
     );
 });
 
-// Get details (items) of a specific order
+// Get details of a specific order
 router.get('/:id/items', (req, res) => {
     db.query(
         `SELECT order_items.*, menu_items.name FROM order_items 

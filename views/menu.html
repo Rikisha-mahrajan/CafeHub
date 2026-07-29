@@ -25,6 +25,17 @@
         <div>
             <a href="/views/my-orders.html" class="btn btn-outline-light me-2">My Orders</a>
             <a href="/views/profile.html" class="btn btn-outline-light me-2">Profile</a>
+            <div class="dropdown me-2">
+                <button class="btn btn-outline-light position-relative" onclick="toggleNotifications()" id="bell-btn">
+                    🔔 <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="notif-count" style="display:none;">0</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-2" id="notif-dropdown" style="display:none; width:320px; max-height:400px; overflow-y:auto;">
+                    <h6 class="dropdown-header">Notifications</h6>
+                    <div id="notif-list"><p class="text-muted small px-2">No notifications</p></div>
+                    <div class="dropdown-divider"></div>
+                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="markAllRead()">Mark all as read</button>
+                </div>
+            </div>
             <button class="btn btn-light me-2" onclick="viewCart()">🛒 Cart <span id="cart-count">0</span></button>
             <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
         </div>
@@ -79,7 +90,7 @@
                                 </div>
                                 <p class="card-text text-muted">${item.description || ''}</p>
                                 <p class="fw-bold">Rs. ${item.price}</p>
-                                <button class="btn btn-order" 
+                                <button class="btn btn-order"
                                     onclick="addToCart(${item.id}, '${item.name}', ${item.price})"
                                     ${!isAvailable ? 'disabled' : ''}>
                                     ${isAvailable ? 'Add to Cart' : 'Unavailable'}
@@ -91,60 +102,60 @@
         }
 
         function addToCart(id, name, price) {
-    const existing = cart.find(i => i.id === id);
-    if (existing) existing.quantity++;
-    else cart.push({ id, name, price, quantity: 1 });
-    updateCartCount();
-}
+            const existing = cart.find(i => i.id === id);
+            if (existing) existing.quantity++;
+            else cart.push({ id, name, price, quantity: 1 });
+            updateCartCount();
+        }
 
-function updateCartCount() {
-    document.getElementById('cart-count').textContent = cart.reduce((a, i) => a + i.quantity, 0);
-}
-
-function increaseQty(id) {
-    const item = cart.find(i => i.id === id);
-    if (item) item.quantity++;
-    updateCartCount();
-    renderCart();
-}
-
-function decreaseQty(id) {
-    const item = cart.find(i => i.id === id);
-    if (item) {
-        item.quantity--;
-        if (item.quantity <= 0) cart = cart.filter(i => i.id !== id);
-    }
-    updateCartCount();
-    renderCart();
-}
-
-        function removeFromCart(id) {
-            cart = cart.filter(i => i.id !== id);
+        function updateCartCount() {
             document.getElementById('cart-count').textContent = cart.reduce((a, i) => a + i.quantity, 0);
+        }
+
+        function increaseQty(id) {
+            const item = cart.find(i => i.id === id);
+            if (item) item.quantity++;
+            updateCartCount();
             renderCart();
         }
 
-       function renderCart() {
-    const total = cart.reduce((a, i) => a + i.price * i.quantity, 0);
-    document.getElementById('cart-total').textContent = total;
+        function decreaseQty(id) {
+            const item = cart.find(i => i.id === id);
+            if (item) {
+                item.quantity--;
+                if (item.quantity <= 0) cart = cart.filter(i => i.id !== id);
+            }
+            updateCartCount();
+            renderCart();
+        }
 
-    if (cart.length === 0) {
-        document.getElementById('cart-items').innerHTML = '<p>Your cart is empty.</p>';
-    } else {
-        document.getElementById('cart-items').innerHTML = cart.map(i =>
-            `<div class="d-flex justify-content-between align-items-center mb-2">
-                <span>${i.name}</span>
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="decreaseQty(${i.id})">−</button>
-                    <span>${i.quantity}</span>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="increaseQty(${i.id})">+</button>
-                    <span class="ms-2">Rs. ${i.price * i.quantity}</span>
-                    <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${i.id})">Remove</button>
-                </div>
-            </div>`
-        ).join('');
-    }
-}
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id !== id);
+            updateCartCount();
+            renderCart();
+        }
+
+        function renderCart() {
+            const total = cart.reduce((a, i) => a + i.price * i.quantity, 0);
+            document.getElementById('cart-total').textContent = total;
+
+            if (cart.length === 0) {
+                document.getElementById('cart-items').innerHTML = '<p>Your cart is empty.</p>';
+            } else {
+                document.getElementById('cart-items').innerHTML = cart.map(i =>
+                    `<div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>${i.name}</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="decreaseQty(${i.id})">−</button>
+                            <span>${i.quantity}</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="increaseQty(${i.id})">+</button>
+                            <span class="ms-2">Rs. ${i.price * i.quantity}</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${i.id})">Remove</button>
+                        </div>
+                    </div>`
+                ).join('');
+            }
+        }
 
         function viewCart() {
             renderCart();
@@ -169,7 +180,7 @@ function decreaseQty(id) {
                     initiatePayment(data.order_id);
                 } else {
                     cart = [];
-                    document.getElementById('cart-count').textContent = 0;
+                    updateCartCount();
                     window.location.href = '/views/my-orders.html';
                 }
             } else {
@@ -197,16 +208,70 @@ function decreaseQty(id) {
             form.submit();
         }
 
+        async function loadNotifications() {
+            const res = await fetch('/notifications');
+            if (!res.ok) return;
+            const notifications = await res.json();
+            const list = document.getElementById('notif-list');
+            const countBadge = document.getElementById('notif-count');
+
+            const unread = notifications.filter(n => !n.is_read).length;
+            if (unread > 0) {
+                countBadge.textContent = unread;
+                countBadge.style.display = 'inline';
+            } else {
+                countBadge.style.display = 'none';
+            }
+
+            if (notifications.length === 0) {
+                list.innerHTML = '<p class="text-muted small px-2">No notifications</p>';
+                return;
+            }
+
+            list.innerHTML = notifications.map(n => `
+                <div class="px-2 py-1 ${!n.is_read ? 'bg-light' : ''}" style="border-radius:6px; margin-bottom:4px;">
+                    <p class="mb-0 small">${n.message}</p>
+                    <small class="text-muted">${new Date(n.created_at).toLocaleString()}</small>
+                </div>
+            `).join('');
+        }
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notif-dropdown');
+            if (dropdown.style.display === 'none') {
+                dropdown.style.display = 'block';
+                markAllRead();
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        async function markAllRead() {
+            await fetch('/notifications/mark-read', { method: 'PUT' });
+            document.getElementById('notif-count').style.display = 'none';
+            loadNotifications();
+        }
+
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('notif-dropdown');
+            const bellBtn = document.getElementById('bell-btn');
+            if (!bellBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
         loadMenu();
+        loadNotifications();
+        setInterval(loadNotifications, 30000);
     </script>
 
     <footer class="mt-5 py-4" style="background-color: #ff6600; color: white;">
-    <div class="container text-center">
-        <p class="mb-1 fw-bold">🍽️ CafeHub - Cafeteria Management System</p>
-        <p class="mb-1 small">Developed by Rikisha Maharjan</p>
-        <p class="mb-0 small">© 2026 CafeHub. All rights reserved.</p>
-    </div>
-</footer>
+        <div class="container text-center">
+            <p class="mb-1 fw-bold">🍽️ CafeHub - Cafeteria Management System</p>
+            <p class="mb-1 small">Developed by Rikisha Maharjan</p>
+            <p class="mb-0 small">© 2026 CafeHub. All rights reserved.</p>
+        </div>
+    </footer>
 
 </body>
 </html>

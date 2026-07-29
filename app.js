@@ -26,6 +26,7 @@ const adminRoutes = require('./routes/admin');
 const staffRoutes = require('./routes/staff');
 const paymentRoutes = require('./routes/payment');
 const feedbackRoutes = require('./routes/feedback');
+const notificationRoutes = require('./routes/notifications');
 
 app.use('/auth', authRoutes);
 app.use('/menu', isAuthenticated, menuRoutes);
@@ -34,6 +35,7 @@ app.use('/admin', isAuthenticated, isAdmin, adminRoutes);
 app.use('/staff', isAuthenticated, isStaffOrAdmin, staffRoutes);
 app.use('/payment', isAuthenticated, paymentRoutes);
 app.use('/feedback', isAuthenticated, feedbackRoutes);
+app.use('/notifications', isAuthenticated, notificationRoutes);
 
 // View routes
 app.get('/', (req, res) => {

@@ -22,7 +22,20 @@
 <body>
     <nav class="navbar navbar-dark px-4 py-3">
         <span class="navbar-brand fw-bold">🍽️ CafeHub Admin</span>
-        <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
+        <div>
+            <div class="dropdown me-2">
+                <button class="btn btn-outline-light position-relative" onclick="toggleNotifications()" id="bell-btn">
+                    🔔 <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="notif-count" style="display:none;">0</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-2" id="notif-dropdown" style="display:none; width:320px; max-height:400px; overflow-y:auto;">
+                    <h6 class="dropdown-header">Notifications</h6>
+                    <div id="notif-list"><p class="text-muted small px-2">No notifications</p></div>
+                    <div class="dropdown-divider"></div>
+                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="markAllRead()">Mark all as read</button>
+                </div>
+            </div>
+            <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
+        </div>
     </nav>
 
     <div class="container mt-4">
@@ -41,6 +54,7 @@
         <div id="feedback-tab" style="display:none"><div id="feedback-container"></div></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         async function loadStats() {
             const res = await fetch('/admin/stats');
@@ -161,17 +175,71 @@
             `).join('');
         }
 
+        async function loadNotifications() {
+            const res = await fetch('/notifications');
+            if (!res.ok) return;
+            const notifications = await res.json();
+            const list = document.getElementById('notif-list');
+            const countBadge = document.getElementById('notif-count');
+
+            const unread = notifications.filter(n => !n.is_read).length;
+            if (unread > 0) {
+                countBadge.textContent = unread;
+                countBadge.style.display = 'inline';
+            } else {
+                countBadge.style.display = 'none';
+            }
+
+            if (notifications.length === 0) {
+                list.innerHTML = '<p class="text-muted small px-2">No notifications</p>';
+                return;
+            }
+
+            list.innerHTML = notifications.map(n => `
+                <div class="px-2 py-1 ${!n.is_read ? 'bg-light' : ''}" style="border-radius:6px; margin-bottom:4px;">
+                    <p class="mb-0 small">${n.message}</p>
+                    <small class="text-muted">${new Date(n.created_at).toLocaleString()}</small>
+                </div>
+            `).join('');
+        }
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notif-dropdown');
+            if (dropdown.style.display === 'none') {
+                dropdown.style.display = 'block';
+                markAllRead();
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        async function markAllRead() {
+            await fetch('/notifications/mark-read', { method: 'PUT' });
+            document.getElementById('notif-count').style.display = 'none';
+            loadNotifications();
+        }
+
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('notif-dropdown');
+            const bellBtn = document.getElementById('bell-btn');
+            if (!bellBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
         loadStats();
         loadUsers();
+        loadNotifications();
+        setInterval(loadNotifications, 30000);
     </script>
 
     <footer class="mt-5 py-4" style="background-color: #6f42c1; color: white;">
-    <div class="container text-center">
-        <p class="mb-1 fw-bold">🍽️ CafeHub - Cafeteria Management System</p>
-        <p class="mb-1 small">Developed by Rikisha Maharjan</p>
-        <p class="mb-0 small">© 2026 CafeHub. All rights reserved.</p>
-    </div>
-</footer>
+        <div class="container text-center">
+            <p class="mb-1 fw-bold">🍽️ CafeHub - Cafeteria Management System</p>
+            <p class="mb-1 small">Developed by Rikisha Maharjan</p>
+            <p class="mb-0 small">© 2026 CafeHub. All rights reserved.</p>
+        </div>
+    </footer>
 
 </body>
 </html>
