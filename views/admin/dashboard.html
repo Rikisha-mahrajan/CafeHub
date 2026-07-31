@@ -6,8 +6,8 @@
     <title>CafeHub - Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; }
-.content-wrap { flex: 1; }
+        body { background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; margin: 0; }
+        .content-wrap { flex: 1; }
         .navbar { background-color: #6f42c1; }
         .nav-tabs .nav-link.active { background-color: #6f42c1; color: white; }
         .stat-card { background: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
@@ -22,39 +22,38 @@
 </head>
 <body>
     <div class="content-wrap">
-    <nav class="navbar navbar-dark px-4 py-3">
-        <span class="navbar-brand fw-bold">🍽️ CafeHub Admin</span>
-        <div>
-            <div class="dropdown me-2">
-                <button class="btn btn-outline-light position-relative" onclick="toggleNotifications()" id="bell-btn">
-                    🔔 <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="notif-count" style="display:none;">0</span>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end p-2" id="notif-dropdown" style="display:none; width:320px; max-height:400px; overflow-y:auto;">
-                    <h6 class="dropdown-header">Notifications</h6>
-                    <div id="notif-list"><p class="text-muted small px-2">No notifications</p></div>
-                    <div class="dropdown-divider"></div>
-                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="markAllRead()">Mark all as read</button>
+        <nav class="navbar navbar-dark px-4 py-2">
+            <span class="navbar-brand fw-bold">🍽️ CafeHub Admin</span>
+            <div class="d-flex align-items-center gap-2">
+                <div class="position-relative">
+                    <button class="btn btn-outline-light btn-sm position-relative" onclick="toggleNotifications()" id="bell-btn">
+                        🔔 <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="notif-count" style="display:none; font-size:10px;">0</span>
+                    </button>
+                    <div id="notif-dropdown" style="display:none; position:absolute; right:0; top:40px; width:300px; max-height:400px; overflow-y:auto; background:white; border:1px solid #ddd; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:9999; padding:10px;">
+                        <h6 style="padding:5px 10px; margin:0; color:#333;">Notifications</h6>
+                        <hr style="margin:5px 0;">
+                        <div id="notif-list"><p class="text-muted small px-2">No notifications</p></div>
+                        <hr style="margin:5px 0;">
+                        <button class="btn btn-sm btn-outline-secondary w-100" onclick="markAllRead()">Mark all as read</button>
+                    </div>
                 </div>
+                <a href="/auth/logout" class="btn btn-outline-light btn-sm">Logout</a>
             </div>
-            <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
+        </nav>
+
+        <div class="container mt-4">
+            <div class="row g-3 mb-4" id="stats-container"></div>
+            <ul class="nav nav-tabs mb-4">
+                <li class="nav-item"><button class="nav-link active" onclick="showTab('users')" id="tab-users">Users</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="showTab('orders')" id="tab-orders">Order History</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="showTab('payments')" id="tab-payments">Payments</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="showTab('feedback')" id="tab-feedback">Feedback</button></li>
+            </ul>
+            <div id="users-tab"><div id="users-container"></div></div>
+            <div id="orders-tab" style="display:none"><div id="orders-container"></div></div>
+            <div id="payments-tab" style="display:none"><div id="payments-container"></div></div>
+            <div id="feedback-tab" style="display:none"><div id="feedback-container"></div></div>
         </div>
-    </nav>
-
-    <div class="container mt-4">
-        <div class="row g-3 mb-4" id="stats-container"></div>
-
-        <ul class="nav nav-tabs mb-4">
-            <li class="nav-item"><button class="nav-link active" onclick="showTab('users')" id="tab-users">Users</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('orders')" id="tab-orders">Order History</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('payments')" id="tab-payments">Payments</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('feedback')" id="tab-feedback">Feedback</button></li>
-        </ul>
-
-        <div id="users-tab"><div id="users-container"></div></div>
-        <div id="orders-tab" style="display:none"><div id="orders-container"></div></div>
-        <div id="payments-tab" style="display:none"><div id="payments-container"></div></div>
-        <div id="feedback-tab" style="display:none"><div id="feedback-container"></div></div>
-    </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -109,11 +108,7 @@
         }
 
         async function updateRole(id, role) {
-            await fetch(`/admin/users/${id}/role`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role })
-            });
+            await fetch(`/admin/users/${id}/role`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) });
         }
 
         async function deleteUser(id) {
@@ -184,20 +179,10 @@
             const notifications = await res.json();
             const list = document.getElementById('notif-list');
             const countBadge = document.getElementById('notif-count');
-
             const unread = notifications.filter(n => !n.is_read).length;
-            if (unread > 0) {
-                countBadge.textContent = unread;
-                countBadge.style.display = 'inline';
-            } else {
-                countBadge.style.display = 'none';
-            }
-
-            if (notifications.length === 0) {
-                list.innerHTML = '<p class="text-muted small px-2">No notifications</p>';
-                return;
-            }
-
+            if (unread > 0) { countBadge.textContent = unread; countBadge.style.display = 'inline'; }
+            else { countBadge.style.display = 'none'; }
+            if (notifications.length === 0) { list.innerHTML = '<p class="text-muted small px-2">No notifications</p>'; return; }
             list.innerHTML = notifications.map(n => `
                 <div class="px-2 py-1 ${!n.is_read ? 'bg-light' : ''}" style="border-radius:6px; margin-bottom:4px;">
                     <p class="mb-0 small">${n.message}</p>
@@ -208,12 +193,8 @@
 
         function toggleNotifications() {
             const dropdown = document.getElementById('notif-dropdown');
-            if (dropdown.style.display === 'none') {
-                dropdown.style.display = 'block';
-                markAllRead();
-            } else {
-                dropdown.style.display = 'none';
-            }
+            if (dropdown.style.display === 'none') { dropdown.style.display = 'block'; markAllRead(); }
+            else { dropdown.style.display = 'none'; }
         }
 
         async function markAllRead() {
@@ -225,9 +206,7 @@
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('notif-dropdown');
             const bellBtn = document.getElementById('bell-btn');
-            if (!bellBtn.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
+            if (!bellBtn.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = 'none';
         });
 
         loadStats();
@@ -243,6 +222,5 @@
             <p class="mb-0 small">© 2026 CafeHub. All rights reserved.</p>
         </div>
     </footer>
-
 </body>
 </html>

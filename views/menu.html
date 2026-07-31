@@ -22,26 +22,27 @@
 </head>
 <body>
     <div class="content-wrap">
-    <nav class="navbar navbar-dark px-4 py-3">
-        <span class="navbar-brand fw-bold">🍽️ CafeHub Menu</span>
-        <div>
-            <a href="/views/my-orders.html" class="btn btn-outline-light me-2">My Orders</a>
-            <a href="/views/profile.html" class="btn btn-outline-light me-2">Profile</a>
-            <div class="dropdown me-2">
-                <button class="btn btn-outline-light position-relative" onclick="toggleNotifications()" id="bell-btn">
-                    🔔 <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="notif-count" style="display:none;">0</span>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end p-2" id="notif-dropdown" style="display:none; width:320px; max-height:400px; overflow-y:auto;">
-                    <h6 class="dropdown-header">Notifications</h6>
-                    <div id="notif-list"><p class="text-muted small px-2">No notifications</p></div>
-                    <div class="dropdown-divider"></div>
-                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="markAllRead()">Mark all as read</button>
-                </div>
+    <nav class="navbar navbar-dark px-4 py-2">
+    <span class="navbar-brand fw-bold">🍽️ CafeHub Menu</span>
+    <div class="d-flex align-items-center gap-2">
+        <a href="/views/my-orders.html" class="btn btn-outline-light btn-sm">My Orders</a>
+        <a href="/views/profile.html" class="btn btn-outline-light btn-sm">Profile</a>
+        <div class="position-relative">
+            <button class="btn btn-outline-light btn-sm position-relative" onclick="toggleNotifications()" id="bell-btn">
+                🔔 <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="notif-count" style="display:none; font-size:10px;">0</span>
+            </button>
+            <div id="notif-dropdown" style="display:none; position:absolute; right:0; top:40px; width:300px; max-height:400px; overflow-y:auto; background:white; border:1px solid #ddd; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:9999; padding:10px;">
+                <h6 style="padding:5px 10px; margin:0; color:#333;">Notifications</h6>
+                <hr style="margin:5px 0;">
+                <div id="notif-list"><p class="text-muted small px-2">No notifications</p></div>
+                <hr style="margin:5px 0;">
+                <button class="btn btn-sm btn-outline-secondary w-100" onclick="markAllRead()">Mark all as read</button>
             </div>
-            <button class="btn btn-light me-2" onclick="viewCart()">🛒 Cart <span id="cart-count">0</span></button>
-            <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
         </div>
-    </nav>
+        <button class="btn btn-light btn-sm" onclick="viewCart()">🛒 Cart <span id="cart-count">0</span></button>
+        <a href="/auth/logout" class="btn btn-outline-light btn-sm">Logout</a>
+    </div>
+</nav>
 
     <div class="container mt-4">
         <div id="menu-container" class="row g-4"></div>

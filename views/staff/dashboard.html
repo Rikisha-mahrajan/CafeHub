@@ -6,8 +6,8 @@
     <title>CafeHub - Staff Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; }
-.content-wrap { flex: 1; }
+        body { background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; margin: 0; }
+        .content-wrap { flex: 1; }
         .navbar { background-color: #20c997; }
         .nav-tabs .nav-link.active { background-color: #20c997; color: white; }
         .status-pending { background-color: #6c757d; }
@@ -22,91 +22,71 @@
 </head>
 <body>
     <div class="content-wrap">
-    <nav class="navbar navbar-dark px-4 py-3">
-        <span class="navbar-brand fw-bold">🍽️ CafeHub Staff</span>
-        <div>
-            <div class="dropdown me-2">
-                <button class="btn btn-outline-light position-relative" onclick="toggleNotifications()" id="bell-btn">
-                    🔔 <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="notif-count" style="display:none;">0</span>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end p-2" id="notif-dropdown" style="display:none; width:320px; max-height:400px; overflow-y:auto;">
-                    <h6 class="dropdown-header">Notifications</h6>
-                    <div id="notif-list"><p class="text-muted small px-2">No notifications</p></div>
-                    <div class="dropdown-divider"></div>
-                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="markAllRead()">Mark all as read</button>
+        <nav class="navbar navbar-dark px-4 py-2">
+            <span class="navbar-brand fw-bold">🍽️ CafeHub Staff</span>
+            <div class="d-flex align-items-center gap-2">
+                <div class="position-relative">
+                    <button class="btn btn-outline-light btn-sm position-relative" onclick="toggleNotifications()" id="bell-btn">
+                        🔔 <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="notif-count" style="display:none; font-size:10px;">0</span>
+                    </button>
+                    <div id="notif-dropdown" style="display:none; position:absolute; right:0; top:40px; width:300px; max-height:400px; overflow-y:auto; background:white; border:1px solid #ddd; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:9999; padding:10px;">
+                        <h6 style="padding:5px 10px; margin:0; color:#333;">Notifications</h6>
+                        <hr style="margin:5px 0;">
+                        <div id="notif-list"><p class="text-muted small px-2">No notifications</p></div>
+                        <hr style="margin:5px 0;">
+                        <button class="btn btn-sm btn-outline-secondary w-100" onclick="markAllRead()">Mark all as read</button>
+                    </div>
                 </div>
+                <a href="/auth/logout" class="btn btn-outline-light btn-sm">Logout</a>
             </div>
-            <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
-        </div>
-    </nav>
+        </nav>
 
-    <div class="container mt-4">
-        <ul class="nav nav-tabs mb-4">
-            <li class="nav-item"><button class="nav-link active" onclick="showTab('orders')" id="tab-orders">Incoming Orders</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('today')" id="tab-today">Today's Orders</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('menu')" id="tab-menu">Manage Menu</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('feedback')" id="tab-feedback">Feedback</button></li>
-        </ul>
+        <div class="container mt-4">
+            <ul class="nav nav-tabs mb-4">
+                <li class="nav-item"><button class="nav-link active" onclick="showTab('orders')" id="tab-orders">Incoming Orders</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="showTab('today')" id="tab-today">Today's Orders</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="showTab('menu')" id="tab-menu">Manage Menu</button></li>
+                <li class="nav-item"><button class="nav-link" onclick="showTab('feedback')" id="tab-feedback">Feedback</button></li>
+            </ul>
 
-        <div id="orders-tab">
-            <div id="orders-container"></div>
-        </div>
-
-        <div id="today-tab" style="display:none">
-            <div id="today-container"></div>
-        </div>
-
-        <div id="menu-tab" style="display:none">
-            <button class="btn btn-success-custom mb-3" data-bs-toggle="modal" data-bs-target="#menuModal" onclick="openAddModal()">+ Add Menu Item</button>
-            <div id="menu-container" class="row g-3"></div>
+            <div id="orders-tab"><div id="orders-container"></div></div>
+            <div id="today-tab" style="display:none"><div id="today-container"></div></div>
+            <div id="menu-tab" style="display:none">
+                <button class="btn btn-success-custom mb-3" data-bs-toggle="modal" data-bs-target="#menuModal" onclick="openAddModal()">+ Add Menu Item</button>
+                <div id="menu-container" class="row g-3"></div>
+            </div>
+            <div id="feedback-tab" style="display:none"><div id="feedback-container"></div></div>
         </div>
 
-        <div id="feedback-tab" style="display:none">
-            <div id="feedback-container"></div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="menuModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Add Menu Item</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="item-id">
-                    <div class="mb-2">
-                        <label class="form-label">Name</label>
-                        <input type="text" id="item-name" class="form-control">
+        <div class="modal fade" id="menuModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Add Menu Item</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Description</label>
-                        <textarea id="item-description" class="form-control"></textarea>
+                    <div class="modal-body">
+                        <input type="hidden" id="item-id">
+                        <div class="mb-2"><label class="form-label">Name</label><input type="text" id="item-name" class="form-control"></div>
+                        <div class="mb-2"><label class="form-label">Description</label><textarea id="item-description" class="form-control"></textarea></div>
+                        <div class="mb-2"><label class="form-label">Price (Rs.)</label><input type="number" id="item-price" class="form-control"></div>
+                        <div class="mb-2"><label class="form-label">Category</label><input type="text" id="item-category" class="form-control" placeholder="e.g. Snacks, Drinks, Meals"></div>
+                        <div class="mb-2">
+                            <label class="form-label">Image URL</label>
+                            <input type="text" id="item-image-url" class="form-control" placeholder="https://example.com/image.jpg">
+                            <small class="text-muted">Paste an image URL from Google Images or Unsplash</small>
+                        </div>
+                        <div class="mb-2 form-check">
+                            <input type="checkbox" id="item-availability" class="form-check-input" checked>
+                            <label class="form-check-label">Available</label>
+                        </div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Price (Rs.)</label>
-                        <input type="number" id="item-price" class="form-control">
+                    <div class="modal-footer">
+                        <button class="btn btn-success-custom" onclick="saveMenuItem()">Save</button>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Category</label>
-                        <input type="text" id="item-category" class="form-control" placeholder="e.g. Snacks, Drinks, Meals">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Image URL</label>
-                        <input type="text" id="item-image-url" class="form-control" placeholder="https://example.com/image.jpg">
-                        <small class="text-muted">Paste an image URL from Google Images or Unsplash</small>
-                    </div>
-                    <div class="mb-2 form-check">
-                        <input type="checkbox" id="item-availability" class="form-check-input" checked>
-                        <label class="form-check-label">Available</label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-success-custom" onclick="saveMenuItem()">Save</button>
                 </div>
             </div>
         </div>
-    </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -126,21 +106,12 @@
             const res = await fetch('/staff/orders');
             const orders = await res.json();
             const container = document.getElementById('orders-container');
-
-            if (orders.length === 0) {
-                container.innerHTML = '<p class="text-muted">No incoming orders right now.</p>';
-                return;
-            }
-
+            if (orders.length === 0) { container.innerHTML = '<p class="text-muted">No incoming orders right now.</p>'; return; }
             container.innerHTML = '';
-
             for (const order of orders) {
                 const itemsRes = await fetch(`/orders/${order.id}/items`);
                 const items = await itemsRes.json();
-                const itemsList = items.map(i => `
-                    <span class="badge bg-light text-dark border me-1">${i.name} x${i.quantity}</span>
-                `).join('');
-
+                const itemsList = items.map(i => `<span class="badge bg-light text-dark border me-1">${i.name} x${i.quantity}</span>`).join('');
                 container.innerHTML += `
                     <div class="card mb-3">
                         <div class="card-body">
@@ -169,11 +140,7 @@
         }
 
         async function updateStatus(id, status) {
-            await fetch(`/staff/orders/${id}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
-            });
+            await fetch(`/staff/orders/${id}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
             loadOrders();
         }
 
@@ -181,24 +148,16 @@
             const res = await fetch('/staff/orders/today');
             const orders = await res.json();
             const container = document.getElementById('today-container');
-
-            if (orders.length === 0) {
-                container.innerHTML = '<p class="text-muted">No orders today yet.</p>';
-                return;
-            }
-
+            if (orders.length === 0) { container.innerHTML = '<p class="text-muted">No orders today yet.</p>'; return; }
             container.innerHTML = `
                 <table class="table table-bordered bg-white">
                     <thead><tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Payment</th><th>Time</th></tr></thead>
                     <tbody>
                         ${orders.map(o => `
                             <tr>
-                                <td>#${o.id}</td>
-                                <td>${o.customer_name}</td>
-                                <td>Rs. ${o.total_amount}</td>
+                                <td>#${o.id}</td><td>${o.customer_name}</td><td>Rs. ${o.total_amount}</td>
                                 <td><span class="badge status-${o.status}">${o.status}</span></td>
-                                <td>${o.payment_status}</td>
-                                <td>${new Date(o.created_at).toLocaleTimeString()}</td>
+                                <td>${o.payment_status}</td><td>${new Date(o.created_at).toLocaleTimeString()}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -209,7 +168,6 @@
             const res = await fetch('/menu');
             const items = await res.json();
             const container = document.getElementById('menu-container');
-
             container.innerHTML = items.map(item => `
                 <div class="col-md-3">
                     <div class="card h-100">
@@ -257,16 +215,9 @@
             const category = document.getElementById('item-category').value;
             const availability = document.getElementById('item-availability').checked ? 1 : 0;
             const image_url = document.getElementById('item-image-url').value;
-
             const url = id ? `/menu/${id}` : '/menu';
             const method = id ? 'PUT' : 'POST';
-
-            await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description, price, category, availability, image_url })
-            });
-
+            await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, description, price, category, availability, image_url }) });
             bootstrap.Modal.getInstance(document.getElementById('menuModal')).hide();
             loadMenu();
         }
@@ -281,12 +232,7 @@
             const res = await fetch('/staff/feedback');
             const feedbackList = await res.json();
             const container = document.getElementById('feedback-container');
-
-            if (feedbackList.length === 0) {
-                container.innerHTML = '<p class="text-muted">No feedback yet.</p>';
-                return;
-            }
-
+            if (feedbackList.length === 0) { container.innerHTML = '<p class="text-muted">No feedback yet.</p>'; return; }
             container.innerHTML = feedbackList.map(f => `
                 <div class="card mb-2">
                     <div class="card-body">
@@ -304,20 +250,10 @@
             const notifications = await res.json();
             const list = document.getElementById('notif-list');
             const countBadge = document.getElementById('notif-count');
-
             const unread = notifications.filter(n => !n.is_read).length;
-            if (unread > 0) {
-                countBadge.textContent = unread;
-                countBadge.style.display = 'inline';
-            } else {
-                countBadge.style.display = 'none';
-            }
-
-            if (notifications.length === 0) {
-                list.innerHTML = '<p class="text-muted small px-2">No notifications</p>';
-                return;
-            }
-
+            if (unread > 0) { countBadge.textContent = unread; countBadge.style.display = 'inline'; }
+            else { countBadge.style.display = 'none'; }
+            if (notifications.length === 0) { list.innerHTML = '<p class="text-muted small px-2">No notifications</p>'; return; }
             list.innerHTML = notifications.map(n => `
                 <div class="px-2 py-1 ${!n.is_read ? 'bg-light' : ''}" style="border-radius:6px; margin-bottom:4px;">
                     <p class="mb-0 small">${n.message}</p>
@@ -328,12 +264,8 @@
 
         function toggleNotifications() {
             const dropdown = document.getElementById('notif-dropdown');
-            if (dropdown.style.display === 'none') {
-                dropdown.style.display = 'block';
-                markAllRead();
-            } else {
-                dropdown.style.display = 'none';
-            }
+            if (dropdown.style.display === 'none') { dropdown.style.display = 'block'; markAllRead(); }
+            else { dropdown.style.display = 'none'; }
         }
 
         async function markAllRead() {
@@ -345,9 +277,7 @@
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('notif-dropdown');
             const bellBtn = document.getElementById('bell-btn');
-            if (!bellBtn.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
+            if (!bellBtn.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = 'none';
         });
 
         loadOrders();
@@ -362,6 +292,5 @@
             <p class="mb-0 small">© 2026 CafeHub. All rights reserved.</p>
         </div>
     </footer>
-
 </body>
 </html>
