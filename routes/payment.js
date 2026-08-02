@@ -105,4 +105,30 @@ router.get('/status/:transactionUuid', async (req, res) => {
     }
 });
 
+// Simulate payment for testing
+router.post('/simulate/:orderId', (req, res) => {
+    const orderId = req.params.orderId;
+    const { v4: uuidv4 } = require('uuid');
+    const transactionUuid = `sim-${orderId}-${uuidv4().slice(0, 8)}`;
+
+    db.query('SELECT * FROM orders WHERE id = ?', [orderId], (err, results) => {
+        if (err || results.length === 0) return res.status(404).json({ message: 'Order not found' });
+
+        const order = results[0];
+
+        db.query(
+            'INSERT INTO payments (order_id, transaction_uuid, amount, payment_method, status, reference_id) VALUES (?, ?, ?, ?, ?, ?)',
+            [orderId, transactionUuid, order.total_amount, 'simulated', 'success', 'SIM-TEST'],
+            (err2) => {
+                if (err2) return res.status(500).json({ message: 'Server error' });
+
+                db.query('UPDATE orders SET payment_status = ? WHERE id = ?', ['paid', orderId], (err3) => {
+                    if (err3) return res.status(500).json({ message: 'Server error' });
+                    res.json({ message: 'Payment simulated successfully', order_id: orderId });
+                });
+            }
+        );
+    });
+});
+
 module.exports = router;
