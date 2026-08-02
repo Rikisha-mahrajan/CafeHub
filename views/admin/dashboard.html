@@ -81,31 +81,57 @@
         }
 
         async function loadUsers() {
-            const res = await fetch('/admin/users');
-            const users = await res.json();
-            document.getElementById('users-container').innerHTML = `
-                <table class="table table-bordered bg-white">
-                    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Joined</th><th>Action</th></tr></thead>
-                    <tbody>
-                        ${users.map(u => `
-                            <tr>
-                                <td>${u.name}</td>
-                                <td>${u.email}</td>
-                                <td>${u.phone || '-'}</td>
-                                <td>
-                                    <select class="form-select form-select-sm" onchange="updateRole(${u.id}, this.value)">
-                                        <option value="student" ${u.role === 'student' ? 'selected' : ''}>Student</option>
-                                        <option value="staff" ${u.role === 'staff' ? 'selected' : ''}>Staff</option>
-                                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
-                                    </select>
-                                </td>
-                                <td>${new Date(u.created_at).toLocaleDateString()}</td>
-                                <td><button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${u.id})">Delete</button></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>`;
-        }
+    const res = await fetch('/admin/users');
+    const users = await res.json();
+    document.getElementById('users-container').innerHTML = `
+        <table class="table table-bordered bg-white">
+            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody>
+                ${users.map(u => `
+                    <tr>
+                        <td>${u.name}</td>
+                        <td>${u.email}</td>
+                        <td>${u.phone || '-'}</td>
+                        <td>
+                            <select class="form-select form-select-sm" onchange="updateRole(${u.id}, this.value)">
+                                <option value="student" ${u.role === 'student' ? 'selected' : ''}>Student</option>
+                                <option value="staff" ${u.role === 'staff' ? 'selected' : ''}>Staff</option>
+                                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                        </td>
+                        <td>${u.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                ${u.is_active
+                                    ? `<button class="btn btn-sm btn-warning" onclick="deactivateUser(${u.id})">Deactivate</button>`
+                                    : `<button class="btn btn-sm btn-success" onclick="activateUser(${u.id})">Activate</button>`
+                                }
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${u.id})">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>`;
+}
+
+async function activateUser(id) {
+    await fetch(`/admin/users/${id}/activate`, { method: 'PUT' });
+    loadUsers();
+}
+
+async function deactivateUser(id) {
+    if (!confirm('Deactivate this user? They will not be able to login.')) return;
+    await fetch(`/admin/users/${id}/deactivate`, { method: 'PUT' });
+    loadUsers();
+}
+
+async function deleteUser(id) {
+    if (!confirm('Permanently delete this user and all their data? This cannot be undone.')) return;
+    await fetch(`/admin/users/${id}`, { method: 'DELETE' });
+    loadUsers();
+}
 
         async function updateRole(id, role) {
             await fetch(`/admin/users/${id}/role`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) });

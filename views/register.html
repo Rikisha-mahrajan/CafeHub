@@ -40,13 +40,13 @@
                 <input type="password" id="password" class="form-control" placeholder="Create a password" oninput="checkStrength()">
                 <div class="strength-bar" id="strength-bar" style="background:#eee;"></div>
                 <div class="strength-text" id="strength-text"></div>
-                <ul class="mt-2 small text-muted">
-                    <li id="req-length">At least 8 characters</li>
-                    <li id="req-upper">At least one uppercase letter</li>
-                    <li id="req-lower">At least one lowercase letter</li>
-                    <li id="req-number">At least one number</li>
-                    <li id="req-special">At least one special character (!@#$%^&*)</li>
-                </ul>
+                <ul class="mt-2 small" id="req-list" style="display:none; color:red; padding-left:20px;">
+    <li id="req-length" style="display:none;">At least 8 characters</li>
+    <li id="req-upper" style="display:none;">At least one uppercase letter</li>
+    <li id="req-lower" style="display:none;">At least one lowercase letter</li>
+    <li id="req-number" style="display:none;">At least one number</li>
+    <li id="req-special" style="display:none;">At least one special character (!@#$%^&*)</li>
+</ul>
             </div>
             <div class="mb-3">
                 <label class="form-label">Confirm Password</label>
@@ -68,24 +68,46 @@
 
     <script>
         function checkStrength() {
-            const password = document.getElementById('password').value;
-            const bar = document.getElementById('strength-bar');
-            const text = document.getElementById('strength-text');
-            const hasLength = password.length >= 8;
-            const hasUpper = /[A-Z]/.test(password);
-            const hasLower = /[a-z]/.test(password);
-            const hasNumber = /[0-9]/.test(password);
-            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-            document.getElementById('req-length').style.color = hasLength ? 'green' : '#999';
-            document.getElementById('req-upper').style.color = hasUpper ? 'green' : '#999';
-            document.getElementById('req-lower').style.color = hasLower ? 'green' : '#999';
-            document.getElementById('req-number').style.color = hasNumber ? 'green' : '#999';
-            document.getElementById('req-special').style.color = hasSpecial ? 'green' : '#999';
-            const score = [hasLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
-            if (score <= 2) { bar.style.background = '#dc3545'; bar.style.width = '33%'; text.textContent = '🔴 Weak password'; text.style.color = '#dc3545'; }
-            else if (score <= 3) { bar.style.background = '#ffc107'; bar.style.width = '66%'; text.textContent = '🟡 Medium password'; text.style.color = '#ffc107'; }
-            else { bar.style.background = '#198754'; bar.style.width = '100%'; text.textContent = '🟢 Strong password'; text.style.color = '#198754'; }
-        }
+    const password = document.getElementById('password').value;
+    const bar = document.getElementById('strength-bar');
+    const text = document.getElementById('strength-text');
+    const hasLength = password.length >= 8;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    const reqList = document.getElementById('req-list');
+    if (password.length === 0) {
+        reqList.style.display = 'none';
+        bar.style.background = '#eee';
+        bar.style.width = '0%';
+        text.textContent = '';
+        return;
+    }
+
+    reqList.style.display = 'block';
+    document.getElementById('req-length').style.display = hasLength ? 'none' : 'list-item';
+    document.getElementById('req-upper').style.display = hasUpper ? 'none' : 'list-item';
+    document.getElementById('req-lower').style.display = hasLower ? 'none' : 'list-item';
+    document.getElementById('req-number').style.display = hasNumber ? 'none' : 'list-item';
+    document.getElementById('req-special').style.display = hasSpecial ? 'none' : 'list-item';
+
+    const score = [hasLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+    if (score <= 2) {
+        bar.style.background = '#dc3545'; bar.style.width = '33%';
+        text.textContent = '🔴 Weak password'; text.style.color = '#dc3545';
+    } else if (score <= 3) {
+        bar.style.background = '#ffc107'; bar.style.width = '66%';
+        text.textContent = '🟡 Medium password'; text.style.color = '#ffc107';
+    } else if (score <= 4) {
+        bar.style.background = '#ffc107'; bar.style.width = '80%';
+        text.textContent = '🟡 Almost there'; text.style.color = '#ffc107';
+    } else {
+        bar.style.background = '#198754'; bar.style.width = '100%';
+        text.textContent = '🟢 Strong password'; text.style.color = '#198754';
+    }
+}
 
         function checkMatch() {
             const password = document.getElementById('password').value;

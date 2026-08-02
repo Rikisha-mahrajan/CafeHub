@@ -15,7 +15,7 @@ router.get('/orders', (req, res) => {
         `SELECT orders.*, users.name AS customer_name, users.phone 
          FROM orders JOIN users ON orders.user_id = users.id 
          WHERE orders.status != 'completed' AND orders.status != 'cancelled'
-         ORDER BY orders.created_at ASC`,
+         ORDER BY orders.created_at DESC`,
         (err, results) => {
             if (err) return res.status(500).json({ message: 'Server error' });
             res.json(results);

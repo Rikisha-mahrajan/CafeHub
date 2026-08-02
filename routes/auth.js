@@ -102,6 +102,10 @@ router.post('/login', (req, res) => {
             return res.status(401).json({ message: 'Please verify your email before logging in.' });
         }
 
+        if (!user.is_active) {
+    return res.status(401).json({ message: 'Your account has been deactivated. Please contact admin.' });
+}
+
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.status(401).json({ message: 'Invalid email or password' });
 
