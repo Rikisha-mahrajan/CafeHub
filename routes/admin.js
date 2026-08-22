@@ -105,4 +105,21 @@ router.get('/stats', (req, res) => {
     );
 });
 
+router.get('/revenue-chart', (req, res) => {
+    db.query(
+        `SELECT 
+            DATE(payments.created_at) AS date,
+            SUM(payments.amount) AS total
+         FROM payments
+         WHERE payments.status = 'success'
+         AND payments.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+         GROUP BY DATE(payments.created_at)
+         ORDER BY date ASC`,
+        (err, results) => {
+            if (err) return res.status(500).json({ message: 'Server error' });
+            res.json(results);
+        }
+    );
+});
+
 module.exports = router;
