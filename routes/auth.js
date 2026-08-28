@@ -61,10 +61,20 @@ router.post('/register', async (req, res) => {
             }
 
             db.query(
-                'INSERT INTO users (name, email, password, phone, role, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [name, email, hashedPassword, phone, finalRole, verificationToken, false],
-                (err2) => {
-                    if (err2) return res.status(500).json({ message: 'Email already exists' });
+    'INSERT INTO users (name, email, password, phone, role, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [name, email, hashedPassword, phone, finalRole, verificationToken, false],
+    async (err, result) => {
+        if (err) return res.status(500).json({ message: 'Email already exists' });
+
+        // Notify all admins about new registration
+        db.query('SELECT id FROM users WHERE role = ?', ['admin'], (err2, admins) => {
+            if (!err2) {
+                admins.forEach(admin => {
+                    db.query('INSERT INTO notifications (user_id, message) VALUES (?, ?)',
+                        [admin.id, `New user registered: ${name} (${finalRole})`]);
+                });
+            }
+        });
                     res.status(201).json({ message: 'Registration successful! Please check your email to verify your account.' });
                 }
             );

@@ -5,7 +5,18 @@ const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const { generateSignature, verifySignature } = require('../config/esewa');
 
-// Step 1: Initiate payment - returns form data for frontend to auto-submit to eSewa
+function notifyAdmins(message) {
+    db.query('SELECT id FROM users WHERE role = ?', ['admin'], (err, admins) => {
+        if (!err) {
+            admins.forEach(admin => {
+                db.query('INSERT INTO notifications (user_id, message) VALUES (?, ?)',
+                    [admin.id, message]);
+            });
+        }
+    });
+}
+
+// Step 1: Initiate eSewa payment
 router.post('/initiate/:orderId', (req, res) => {
     const orderId = req.params.orderId;
 
@@ -15,12 +26,10 @@ router.post('/initiate/:orderId', (req, res) => {
         const order = results[0];
         const transactionUuid = `${orderId}-${uuidv4().slice(0, 8)}`;
         const amount = order.total_amount;
-        const taxAmount = 0;
         const totalAmount = amount;
 
         const signature = generateSignature(totalAmount, transactionUuid, process.env.ESEWA_PRODUCT_CODE);
 
-        // Save a pending payment record
         db.query(
             'INSERT INTO payments (order_id, transaction_uuid, amount, status) VALUES (?, ?, ?, ?)',
             [orderId, transactionUuid, amount, 'pending'],
@@ -31,7 +40,7 @@ router.post('/initiate/:orderId', (req, res) => {
                     gatewayUrl: process.env.ESEWA_GATEWAY_URL,
                     fields: {
                         amount: amount,
-                        tax_amount: taxAmount,
+                        tax_amount: 0,
                         total_amount: totalAmount,
                         transaction_uuid: transactionUuid,
                         product_code: process.env.ESEWA_PRODUCT_CODE,
@@ -48,7 +57,7 @@ router.post('/initiate/:orderId', (req, res) => {
     });
 });
 
-// Step 2: eSewa redirects here after payment - verify and update
+// Step 2: eSewa success callback
 router.get('/success', (req, res) => {
     const encodedData = req.query.data;
     if (!encodedData) return res.redirect('/views/payment-failed.html');
@@ -72,6 +81,10 @@ router.get('/success', (req, res) => {
                     const orderId = transactionUuid.split('-')[0];
                     db.query('UPDATE orders SET payment_status = ? WHERE id = ?', ['paid', orderId], (err2) => {
                         if (err2) return res.redirect('/views/payment-failed.html');
+
+                        // Notify admins about eSewa payment
+                        notifyAdmins(`eSewa payment received for Order #${orderId}`);
+
                         res.redirect(`/views/payment-success.html?order_id=${orderId}`);
                     });
                 }
@@ -84,31 +97,14 @@ router.get('/success', (req, res) => {
     }
 });
 
-// Step 3: eSewa redirects here if payment failed/cancelled
+// Step 3: eSewa failure callback
 router.get('/failure', (req, res) => {
     res.redirect('/views/payment-failed.html');
-});
-
-// Optional: manually check status via eSewa's status API
-router.get('/status/:transactionUuid', async (req, res) => {
-    try {
-        const response = await axios.get(process.env.ESEWA_STATUS_URL, {
-            params: {
-                product_code: process.env.ESEWA_PRODUCT_CODE,
-                total_amount: req.query.amount,
-                transaction_uuid: req.params.transactionUuid
-            }
-        });
-        res.json(response.data);
-    } catch (err) {
-        res.status(500).json({ message: 'Could not fetch status' });
-    }
 });
 
 // Simulate payment for testing
 router.post('/simulate/:orderId', (req, res) => {
     const orderId = req.params.orderId;
-    const { v4: uuidv4 } = require('uuid');
     const transactionUuid = `sim-${orderId}-${uuidv4().slice(0, 8)}`;
 
     db.query('SELECT * FROM orders WHERE id = ?', [orderId], (err, results) => {
@@ -124,11 +120,31 @@ router.post('/simulate/:orderId', (req, res) => {
 
                 db.query('UPDATE orders SET payment_status = ? WHERE id = ?', ['paid', orderId], (err3) => {
                     if (err3) return res.status(500).json({ message: 'Server error' });
+
+                    // Notify admins about simulated payment
+                    notifyAdmins(`Payment received for Order #${orderId} - Rs. ${order.total_amount}`);
+
                     res.json({ message: 'Payment simulated successfully', order_id: orderId });
                 });
             }
         );
     });
+});
+
+// Check payment status
+router.get('/status/:transactionUuid', async (req, res) => {
+    try {
+        const response = await axios.get(process.env.ESEWA_STATUS_URL, {
+            params: {
+                product_code: process.env.ESEWA_PRODUCT_CODE,
+                total_amount: req.query.amount,
+                transaction_uuid: req.params.transactionUuid
+            }
+        });
+        res.json(response.data);
+    } catch (err) {
+        res.status(500).json({ message: 'Could not fetch status' });
+    }
 });
 
 module.exports = router;
