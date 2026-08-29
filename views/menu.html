@@ -42,23 +42,19 @@
         </nav>
 
         <div class="container mt-4">
-    <div class="row mb-4 g-2">
-        <div class="col-md-6">
-            <input type="text" id="search-input" class="form-control" placeholder="🔍 Search food..." oninput="filterMenu()">
+            <div class="row mb-4 g-2">
+                <div class="col-md-6">
+                    <input type="text" id="search-input" class="form-control" placeholder="🔍 Search food..." oninput="filterMenu()">
+                </div>
+                <div class="col-md-6">
+                    <select id="category-filter" class="form-select" onchange="filterMenu()">
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
+            </div>
+            <div id="menu-container" class="row g-4"></div>
+            <p id="no-results" style="display:none;" class="text-center text-muted mt-4">No items found matching your search.</p>
         </div>
-        <div class="col-md-6">
-            <select id="category-filter" class="form-select" onchange="filterMenu()">
-                <option value="all">All Categories</option>
-                <option value="Snacks">Snacks</option>
-                <option value="Drinks">Drinks</option>
-                <option value="Meals">Meals</option>
-                <option value="Noodles">Noodles</option>
-            </select>
-        </div>
-    </div>
-    <div id="menu-container" class="row g-4"></div>
-    <p id="no-results" style="display:none;" class="text-center text-muted mt-4">No items found matching your search.</p>
-</div>
 
         <div class="modal fade" id="cartModal" tabindex="-1">
             <div class="modal-dialog">
@@ -79,85 +75,56 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-
+        let cart = [];
         let allMenuItems = [];
 
-function filterMenu() {
-    const search = document.getElementById('search-input')?.value.toLowerCase() || '';
-    const category = document.getElementById('category-filter')?.value || 'all';
+        async function loadMenu() {
+            const res = await fetch('/menu');
+            allMenuItems = await res.json();
 
-    if (!allMenuItems || allMenuItems.length === 0) return;
+            if (allMenuItems.length === 0) {
+                document.getElementById('menu-container').innerHTML = '<p class="text-center text-muted">No menu items available yet.</p>';
+                return;
+            }
 
-    const filtered = allMenuItems.filter(item => {
-        const matchesSearch = search === '' || 
-            item.name.toLowerCase().includes(search) ||
-            (item.description && item.description.toLowerCase().includes(search));
-        const matchesCategory = category === 'all' || 
-            (item.category && item.category.toLowerCase() === category.toLowerCase());
-        return matchesSearch && matchesCategory;
-    });
+            // Dynamically populate category filter
+            const categories = [...new Set(allMenuItems.map(item => item.category).filter(Boolean))];
+            const categoryFilter = document.getElementById('category-filter');
+            categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+            categories.forEach(cat => {
+                categoryFilter.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
 
-    const container = document.getElementById('menu-container');
-    const noResults = document.getElementById('no-results');
+            filterMenu();
+        }
 
-    if (filtered.length === 0) {
-        container.innerHTML = '';
-        noResults.style.display = 'block';
-        return;
-    }
+        function filterMenu() {
+            const search = document.getElementById('search-input')?.value.toLowerCase() || '';
+            const category = document.getElementById('category-filter')?.value || 'all';
 
-    noResults.style.display = 'none';
-    container.innerHTML = '';
-    filtered.forEach(item => {
-        const imgSrc = item.image_url || 'https://via.placeholder.com/300x160?text=No+Image';
-        const isAvailable = item.availability === 1;
-        container.innerHTML += `
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <img src="${imgSrc}" class="card-img-top" alt="${item.name}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <h5 class="card-title">${item.name}</h5>
-                            ${!isAvailable ? '<span class="badge badge-unavailable">Out of Stock</span>' : ''}
-                        </div>
-                        <p class="card-text text-muted">${item.description || ''}</p>
-                        <p class="fw-bold">Rs. ${item.price}</p>
-                        <button class="btn btn-order"
-                            onclick="addToCart(${item.id}, '${item.name}', ${item.price})"
-                            ${!isAvailable ? 'disabled' : ''}>
-                            ${isAvailable ? 'Add to Cart' : 'Unavailable'}
-                        </button>
-                    </div>
-                </div>
-            </div>`;
-    });
-}
+            if (!allMenuItems || allMenuItems.length === 0) return;
 
-        let cart = [];
+            const filtered = allMenuItems.filter(item => {
+                const matchesSearch = search === '' ||
+                    item.name.toLowerCase().includes(search) ||
+                    (item.description && item.description.toLowerCase().includes(search));
+                const matchesCategory = category === 'all' ||
+                    (item.category && item.category.toLowerCase() === category.toLowerCase());
+                return matchesSearch && matchesCategory;
+            });
 
-      async function loadMenu() {
-    const res = await fetch('/menu');
-    allMenuItems = await res.json();
-    const container = document.getElementById('menu-container');
+            const container = document.getElementById('menu-container');
+            const noResults = document.getElementById('no-results');
 
-    if (allMenuItems.length === 0) {
-        container.innerHTML = '<p class="text-center text-muted">No menu items available yet.</p>';
-        return;
-    }
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                noResults.style.display = 'block';
+                return;
+            }
 
-    // Dynamically populate category filter from actual menu data
-    const categories = [...new Set(allMenuItems.map(item => item.category).filter(Boolean))];
-    const categoryFilter = document.getElementById('category-filter');
-    categoryFilter.innerHTML = '<option value="all">All Categories</option>';
-    categories.forEach(cat => {
-        categoryFilter.innerHTML += `<option value="${cat}">${cat}</option>`;
-    });
-
-    filterMenu();
-}
-
+            noResults.style.display = 'none';
             container.innerHTML = '';
-            items.forEach(item => {
+            filtered.forEach(item => {
                 const imgSrc = item.image_url || 'https://via.placeholder.com/300x160?text=No+Image';
                 const isAvailable = item.availability === 1;
                 container.innerHTML += `
@@ -180,7 +147,7 @@ function filterMenu() {
                         </div>
                     </div>`;
             });
-        
+        }
 
         function addToCart(id, name, price) {
             const existing = cart.find(i => i.id === id);
