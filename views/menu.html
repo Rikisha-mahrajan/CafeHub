@@ -42,8 +42,23 @@
         </nav>
 
         <div class="container mt-4">
-            <div id="menu-container" class="row g-4"></div>
+    <div class="row mb-4 g-2">
+        <div class="col-md-6">
+            <input type="text" id="search-input" class="form-control" placeholder="🔍 Search food..." oninput="filterMenu()">
         </div>
+        <div class="col-md-6">
+            <select id="category-filter" class="form-select" onchange="filterMenu()">
+                <option value="all">All Categories</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Drinks">Drinks</option>
+                <option value="Meals">Meals</option>
+                <option value="Noodles">Noodles</option>
+            </select>
+        </div>
+    </div>
+    <div id="menu-container" class="row g-4"></div>
+    <p id="no-results" style="display:none;" class="text-center text-muted mt-4">No items found matching your search.</p>
+</div>
 
         <div class="modal fade" id="cartModal" tabindex="-1">
             <div class="modal-dialog">
@@ -64,17 +79,70 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+
+        let allMenuItems = [];
+
+function filterMenu() {
+    const search = document.getElementById('search-input').value.toLowerCase();
+    const category = document.getElementById('category-filter').value;
+
+    const filtered = allMenuItems.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(search) ||
+            (item.description && item.description.toLowerCase().includes(search));
+        const matchesCategory = category === 'all' || item.category === category;
+        return matchesSearch && matchesCategory;
+    });
+
+    const container = document.getElementById('menu-container');
+    const noResults = document.getElementById('no-results');
+
+    if (filtered.length === 0) {
+        container.innerHTML = '';
+        noResults.style.display = 'block';
+        return;
+    }
+
+    noResults.style.display = 'none';
+    container.innerHTML = '';
+    filtered.forEach(item => {
+        const imgSrc = item.image_url || 'https://via.placeholder.com/300x160?text=No+Image';
+        const isAvailable = item.availability === 1;
+        container.innerHTML += `
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <img src="${imgSrc}" class="card-img-top" alt="${item.name}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="card-title">${item.name}</h5>
+                            ${!isAvailable ? '<span class="badge badge-unavailable">Out of Stock</span>' : ''}
+                        </div>
+                        <p class="card-text text-muted">${item.description || ''}</p>
+                        <p class="fw-bold">Rs. ${item.price}</p>
+                        <button class="btn btn-order"
+                            onclick="addToCart(${item.id}, '${item.name}', ${item.price})"
+                            ${!isAvailable ? 'disabled' : ''}>
+                            ${isAvailable ? 'Add to Cart' : 'Unavailable'}
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+    });
+}
+
         let cart = [];
 
         async function loadMenu() {
-            const res = await fetch('/menu');
-            const items = await res.json();
-            const container = document.getElementById('menu-container');
+    const res = await fetch('/menu');
+    allMenuItems = await res.json();
+    const container = document.getElementById('menu-container');
 
-            if (items.length === 0) {
-                container.innerHTML = '<p class="text-center text-muted">No menu items available yet.</p>';
-                return;
-            }
+    if (allMenuItems.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted">No menu items available yet.</p>';
+        return;
+    }
+
+    filterMenu();
+}
 
             container.innerHTML = '';
             items.forEach(item => {
