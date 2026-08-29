@@ -45,11 +45,19 @@
             <div class="row g-3 mb-4" id="stats-container"></div>
 
             <div class="card mb-4" id="revenue-chart-card" style="display:none;">
-                <div class="card-body">
-                    <h5 class="card-title">📊 Revenue - Last 7 Days</h5>
-                    <canvas id="revenueChart" height="80"></canvas>
-                </div>
-            </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">📊 Revenue Chart</h5>
+            <select id="revenue-period" class="form-select form-select-sm w-auto" onchange="reloadChart()">
+                <option value="7days">Last 7 Days</option>
+                <option value="30days">Last 30 Days</option>
+                <option value="3months">Last 3 Months</option>
+                <option value="all">All Time</option>
+            </select>
+        </div>
+        <canvas id="revenueChart" height="80"></canvas>
+    </div>
+</div>
 
             <ul class="nav nav-tabs mb-4">
                 <li class="nav-item"><button class="nav-link active" onclick="showTab('users')" id="tab-users">Users</button></li>
@@ -59,7 +67,19 @@
             </ul>
 
             <div id="users-tab"><div id="users-container"></div></div>
-            <div id="orders-tab" style="display:none"><div id="orders-container"></div></div>
+            <div id="orders-tab" style="display:none">
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Order History</h6>
+        <select id="orders-period" class="form-select form-select-sm w-auto" onchange="loadOrders()">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="7days">Last 7 Days</option>
+            <option value="30days">Last 30 Days</option>
+            <option value="3months">Last 3 Months</option>
+        </select>
+    </div>
+    <div id="orders-container"></div>
+</div>
             <div id="payments-tab" style="display:none"><div id="payments-container"></div></div>
             <div id="feedback-tab" style="display:none"><div id="feedback-container"></div></div>
         </div>
@@ -172,25 +192,27 @@
         }
 
         async function loadOrders() {
-            const res = await fetch('/admin/orders');
-            const orders = await res.json();
-            document.getElementById('orders-container').innerHTML = `
-                <table class="table table-bordered bg-white">
-                    <thead><tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Payment</th><th>Date</th></tr></thead>
-                    <tbody>
-                        ${orders.map(o => `
-                            <tr>
-                                <td>#${o.id}</td>
-                                <td>${o.customer_name}</td>
-                                <td>Rs. ${o.total_amount}</td>
-                                <td><span class="badge status-${o.status}">${o.status}</span></td>
-                                <td>${o.payment_status}</td>
-                                <td>${new Date(o.created_at).toLocaleString()}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>`;
-        }
+    const period = document.getElementById('orders-period')?.value || 'all';
+    const res = await fetch(`/admin/orders?period=${period}`);
+    const orders = await res.json();
+    document.getElementById('orders-container').innerHTML = `
+        <table class="table table-bordered bg-white">
+            <thead><tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Payment</th><th>Date</th></tr></thead>
+            <tbody>
+                ${orders.length === 0 ? '<tr><td colspan="6" class="text-center text-muted">No orders found</td></tr>' :
+                orders.map(o => `
+                    <tr>
+                        <td>#${o.id}</td>
+                        <td>${o.customer_name}</td>
+                        <td>Rs. ${o.total_amount}</td>
+                        <td><span class="badge status-${o.status}">${o.status}</span></td>
+                        <td>${o.payment_status}</td>
+                        <td>${new Date(o.created_at).toLocaleString()}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>`;
+}
 
         async function loadPayments() {
             const res = await fetch('/admin/payments');
@@ -263,73 +285,75 @@
             if (!bellBtn.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = 'none';
         });
 
-        let chartLoaded = false;
+        let chartInstance = null;
+let chartLoaded = false;
 
-        function showRevenueChart() {
-            const card = document.getElementById('revenue-chart-card');
-            if (card.style.display === 'none') {
-                card.style.display = 'block';
-                if (!chartLoaded) {
-                    loadRevenueChart();
-                    chartLoaded = true;
-                }
-            } else {
-                card.style.display = 'none';
-            }
-        }
+function showRevenueChart() {
+    const card = document.getElementById('revenue-chart-card');
+    if (card.style.display === 'none') {
+        card.style.display = 'block';
+        loadRevenueChart();
+    } else {
+        card.style.display = 'none';
+    }
+}
 
-        async function loadRevenueChart() {
-            const res = await fetch('/admin/revenue-chart');
-            const data = await res.json();
+function reloadChart() {
+    if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+    }
+    loadRevenueChart();
+}
 
-            const last7Days = [];
-            const revenues = [];
+async function loadRevenueChart() {
+    const period = document.getElementById('revenue-period')?.value || '7days';
+    const res = await fetch(`/admin/revenue-chart?period=${period}`);
+    const data = await res.json();
 
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                const dateStr = date.toISOString().split('T')[0];
-                const dayName = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                last7Days.push(dayName);
-                const found = data.find(d => d.date === dateStr);
-                revenues.push(found ? parseFloat(found.total) : 0);
-            }
+    const labels = data.map(d => new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    const revenues = data.map(d => parseFloat(d.total));
 
-            const ctx = document.getElementById('revenueChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: last7Days,
-                    datasets: [{
-                        label: 'Revenue (Rs.)',
-                        data: revenues,
-                        backgroundColor: 'rgba(111, 66, 193, 0.7)',
-                        borderColor: '#6f42c1',
-                        borderWidth: 2,
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => `Rs. ${context.parsed.y}`
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: (value) => `Rs. ${value}`
-                            }
-                        }
+    if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+    }
+
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.length > 0 ? labels : ['No data'],
+            datasets: [{
+                label: 'Revenue (Rs.)',
+                data: revenues.length > 0 ? revenues : [0],
+                backgroundColor: 'rgba(111, 66, 193, 0.7)',
+                borderColor: '#6f42c1',
+                borderWidth: 2,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `Rs. ${context.parsed.y}`
                     }
                 }
-            });
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: (value) => `Rs. ${value}`
+                    }
+                }
+            }
         }
+    });
+}
 
         loadStats();
         loadUsers();

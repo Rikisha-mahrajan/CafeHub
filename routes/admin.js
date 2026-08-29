@@ -68,9 +68,18 @@ router.get('/payments', (req, res) => {
 });
 
 router.get('/orders', (req, res) => {
+    const period = req.query.period || 'all';
+    let whereClause = '';
+
+    if (period === 'today') whereClause = "WHERE DATE(orders.created_at) = CURDATE()";
+    else if (period === '7days') whereClause = "WHERE orders.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+    else if (period === '30days') whereClause = "WHERE orders.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+    else if (period === '3months') whereClause = "WHERE orders.created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)";
+
     db.query(
         `SELECT orders.*, users.name AS customer_name 
          FROM orders JOIN users ON orders.user_id = users.id 
+         ${whereClause}
          ORDER BY orders.created_at DESC`,
         (err, results) => {
             if (err) return res.status(500).json({ message: 'Server error' });
@@ -106,20 +115,27 @@ router.get('/stats', (req, res) => {
 });
 
 router.get('/revenue-chart', (req, res) => {
-    db.query(
-        `SELECT 
-            DATE(payments.created_at) AS date,
-            SUM(payments.amount) AS total
-         FROM payments
-         WHERE payments.status = 'success'
-         AND payments.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-         GROUP BY DATE(payments.created_at)
-         ORDER BY date ASC`,
-        (err, results) => {
-            if (err) return res.status(500).json({ message: 'Server error' });
-            res.json(results);
-        }
-    );
+    const period = req.query.period || '7days';
+    let interval;
+
+    if (period === '7days') interval = '7 DAY';
+    else if (period === '30days') interval = '30 DAY';
+    else if (period === '3months') interval = '90 DAY';
+    else if (period === 'all') interval = null;
+
+    const query = interval
+        ? `SELECT DATE(payments.created_at) AS date, SUM(payments.amount) AS total
+           FROM payments WHERE payments.status = 'success'
+           AND payments.created_at >= DATE_SUB(CURDATE(), INTERVAL ${interval})
+           GROUP BY DATE(payments.created_at) ORDER BY date ASC`
+        : `SELECT DATE(payments.created_at) AS date, SUM(payments.amount) AS total
+           FROM payments WHERE payments.status = 'success'
+           GROUP BY DATE(payments.created_at) ORDER BY date ASC`;
+
+    db.query(query, (err, results) => {
+        if (err) return res.status(500).json({ message: 'Server error' });
+        res.json(results);
+    });
 });
 
 module.exports = router;
