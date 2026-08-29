@@ -131,7 +131,7 @@ function filterMenu() {
 
         let cart = [];
 
-        async function loadMenu() {
+      async function loadMenu() {
     const res = await fetch('/menu');
     allMenuItems = await res.json();
     const container = document.getElementById('menu-container');
@@ -140,6 +140,14 @@ function filterMenu() {
         container.innerHTML = '<p class="text-center text-muted">No menu items available yet.</p>';
         return;
     }
+
+    // Dynamically populate category filter from actual menu data
+    const categories = [...new Set(allMenuItems.map(item => item.category).filter(Boolean))];
+    const categoryFilter = document.getElementById('category-filter');
+    categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+    categories.forEach(cat => {
+        categoryFilter.innerHTML += `<option value="${cat}">${cat}</option>`;
+    });
 
     filterMenu();
 }
