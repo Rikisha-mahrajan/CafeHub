@@ -83,13 +83,17 @@
         let allMenuItems = [];
 
 function filterMenu() {
-    const search = document.getElementById('search-input').value.toLowerCase();
-    const category = document.getElementById('category-filter').value;
+    const search = document.getElementById('search-input')?.value.toLowerCase() || '';
+    const category = document.getElementById('category-filter')?.value || 'all';
+
+    if (!allMenuItems || allMenuItems.length === 0) return;
 
     const filtered = allMenuItems.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(search) ||
+        const matchesSearch = search === '' || 
+            item.name.toLowerCase().includes(search) ||
             (item.description && item.description.toLowerCase().includes(search));
-        const matchesCategory = category === 'all' || item.category === category;
+        const matchesCategory = category === 'all' || 
+            (item.category && item.category.toLowerCase() === category.toLowerCase());
         return matchesSearch && matchesCategory;
     });
 
