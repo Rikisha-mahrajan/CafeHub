@@ -37,7 +37,10 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">Password</label>
-                <input type="password" id="password" class="form-control" placeholder="Create a password" oninput="checkStrength()">
+                <div class="input-group">
+    <input type="password" id="password" class="form-control" placeholder="Create a password" oninput="checkStrength()">
+    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">👁️</button>
+</div>
                 <div class="strength-bar" id="strength-bar" style="background:#eee;"></div>
                 <div class="strength-text" id="strength-text"></div>
                 <ul class="mt-2 small" id="req-list" style="display:none; color:red; padding-left:20px;">
@@ -50,7 +53,10 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">Confirm Password</label>
-                <input type="password" id="confirm-password" class="form-control" placeholder="Confirm your password" oninput="checkMatch()">
+                <div class="input-group">
+    <input type="password" id="confirm-password" class="form-control" placeholder="Confirm your password" oninput="checkMatch()">
+    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirm-password', this)">👁️</button>
+</div>
                 <div class="small mt-1" id="match-text"></div>
             </div>
             <div class="mb-3">
