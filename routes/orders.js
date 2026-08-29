@@ -79,4 +79,24 @@ router.get('/:id/items', (req, res) => {
     );
 });
 
+// Cancel order (student) - only if pending
+router.put('/:id/cancel', (req, res) => {
+    const userId = req.session.user?.id;
+    if (!userId) return res.status(401).json({ message: 'Not logged in' });
+
+    db.query('SELECT * FROM orders WHERE id = ? AND user_id = ?', [req.params.id, userId], (err, results) => {
+        if (err || results.length === 0) return res.status(404).json({ message: 'Order not found' });
+
+        const order = results[0];
+        if (order.status !== 'pending') {
+            return res.status(400).json({ message: 'Order cannot be cancelled after it has been accepted.' });
+        }
+
+        db.query('UPDATE orders SET status = ? WHERE id = ?', ['cancelled', req.params.id], (err2) => {
+            if (err2) return res.status(500).json({ message: 'Server error' });
+            res.json({ message: 'Order cancelled successfully' });
+        });
+    });
+});
+
 module.exports = router;
