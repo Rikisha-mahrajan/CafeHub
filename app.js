@@ -78,6 +78,14 @@ app.get('/views/admin/dashboard.html', isAuthenticated, isAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'admin', 'dashboard.html'));
 });
 
+app.get('/views/forgot-password.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'forgot-password.html'));
+});
+
+app.get('/views/reset-password.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'reset-password.html'));
+});
+
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

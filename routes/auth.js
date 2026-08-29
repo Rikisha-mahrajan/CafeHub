@@ -166,4 +166,85 @@ router.get('/profile', (req, res) => {
     });
 });
 
+// Forgot password - send reset email
+router.post('/forgot-password', (req, res) => {
+    const { email } = req.body;
+
+    db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
+        if (err || results.length === 0) {
+            return res.status(200).json({ message: 'If this email exists, a reset link has been sent.' });
+        }
+
+        const user = results[0];
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const expiry = new Date(Date.now() + 3600000); // 1 hour expiry
+
+        db.query('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?',
+            [resetToken, expiry, user.id], async (err2) => {
+                if (err2) return res.status(500).json({ message: 'Server error' });
+
+                const resetUrl = `${process.env.BASE_URL}/views/reset-password.html?token=${resetToken}`;
+
+                const data = JSON.stringify({
+                    sender: { name: 'CafeHub', email: process.env.EMAIL_USER },
+                    to: [{ email: user.email, name: user.name }],
+                    subject: 'Reset your CafeHub password',
+                    htmlContent: `<div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 30px; border-radius: 10px; border: 1px solid #eee;">
+                        <h2 style="color: #ff6600;">🍽️ CafeHub Password Reset</h2>
+                        <p>Hi ${user.name},</p>
+                        <p>You requested to reset your password. Click the button below to set a new password:</p>
+                        <a href="${resetUrl}" style="display: inline-block; background-color: #ff6600; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Reset Password</a>
+                        <p style="margin-top: 20px; color: #999; font-size: 12px;">This link expires in 1 hour. If you did not request this, ignore this email.</p>
+                    </div>`
+                });
+
+                const options = {
+                    hostname: 'api.brevo.com',
+                    path: '/v3/smtp/email',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': process.env.BREVO_API_KEY
+                    }
+                };
+
+                const emailReq = https.request(options, (emailRes) => {
+                    let body = '';
+                    emailRes.on('data', (chunk) => body += chunk);
+                    emailRes.on('end', () => console.log('Reset email sent:', emailRes.statusCode));
+                });
+
+                emailReq.on('error', (err) => console.error('Email error:', err.message));
+                emailReq.write(data);
+                emailReq.end();
+
+                res.json({ message: 'If this email exists, a reset link has been sent.' });
+            }
+        );
+    });
+});
+
+// Reset password - set new password
+router.post('/reset-password', (req, res) => {
+    const { token, password } = req.body;
+
+    db.query('SELECT * FROM users WHERE reset_token = ? AND reset_token_expiry > NOW()',
+        [token], async (err, results) => {
+            if (err || results.length === 0) {
+                return res.status(400).json({ message: 'Invalid or expired reset link.' });
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            db.query('UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?',
+                [hashedPassword, results[0].id], (err2) => {
+                    if (err2) return res.status(500).json({ message: 'Server error' });
+                    res.json({ message: 'Password reset successfully! You can now login.' });
+                }
+            );
+        }
+    );
+});
+
+
 module.exports = router;
