@@ -325,13 +325,15 @@ async function loadRevenueChart() {
         data: {
             labels: labels.length > 0 ? labels : ['No data'],
             datasets: [{
-                label: 'Revenue (Rs.)',
-                data: revenues.length > 0 ? revenues : [0],
-                backgroundColor: 'rgba(111, 66, 193, 0.7)',
-                borderColor: '#6f42c1',
-                borderWidth: 2,
-                borderRadius: 6
-            }]
+    label: 'Revenue (Rs.)',
+    data: revenues.length > 0 ? revenues : [0],
+    backgroundColor: 'rgba(111, 66, 193, 0.7)',
+    borderColor: '#6f42c1',
+    borderWidth: 2,
+    borderRadius: 6,
+    barPercentage: 0.4,
+    categoryPercentage: 0.5
+}]
         },
         options: {
             responsive: true,
