@@ -27,11 +27,11 @@
             <div class="mb-3">
                 <label class="form-label">Password</label>
                 <div class="input-group">
-                    <input type="password" id="password" class="form-control" placeholder="Enter your password">
-                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
+    <input type="password" id="password" class="form-control" placeholder="Enter your password" oninput="showToggle()">
+    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)" id="toggle-btn" style="display:none;">
+        <i class="bi bi-eye"></i>
+    </button>
+</div>
             </div>
             <button class="btn btn-primary" onclick="login()">Login</button>
             <p class="text-center mt-2"><a href="/views/forgot-password.html" style="color: #ff6600; font-size: 14px;">Forgot Password?</a></p>
@@ -40,6 +40,12 @@
     </div>
 
     <script>
+        function showToggle() {
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('toggle-btn');
+    btn.style.display = password.length > 0 ? 'block' : 'none';
+}
+
         function togglePassword(fieldId, btn) {
             const field = document.getElementById(fieldId);
             const icon = btn.querySelector('i');
