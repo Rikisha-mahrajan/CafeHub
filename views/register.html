@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CafeHub - Register</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/libphonenumber-js@1.10.53/bundle/libphonenumber-js.min.js"></script>
     <style>
         body { background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; margin: 0; }
@@ -39,7 +40,9 @@
                 <label class="form-label">Password</label>
                 <div class="input-group">
     <input type="password" id="password" class="form-control" placeholder="Create a password" oninput="checkStrength()">
-    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">👁️</button>
+    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
+        <i class="bi bi-eye"></i>
+    </button>
 </div>
                 <div class="strength-bar" id="strength-bar" style="background:#eee;"></div>
                 <div class="strength-text" id="strength-text"></div>
@@ -55,7 +58,9 @@
                 <label class="form-label">Confirm Password</label>
                 <div class="input-group">
     <input type="password" id="confirm-password" class="form-control" placeholder="Confirm your password" oninput="checkMatch()">
-    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirm-password', this)">👁️</button>
+    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirm-password', this)">
+        <i class="bi bi-eye"></i>
+    </button>
 </div>
                 <div class="small mt-1" id="match-text"></div>
             </div>
@@ -73,6 +78,20 @@
     </div>
 
     <script>
+        function togglePassword(fieldId, btn) {
+    const field = document.getElementById(fieldId);
+    const icon = btn.querySelector('i');
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        field.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
+
         function checkStrength() {
     const password = document.getElementById('password').value;
     const bar = document.getElementById('strength-bar');
