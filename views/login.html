@@ -29,7 +29,7 @@
                 <div class="input-group">
     <input type="password" id="password" class="form-control" placeholder="Enter your password" oninput="showToggle()">
     <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)" id="toggle-btn" style="display:none;">
-        <i class="bi bi-eye"></i>
+        <i class="bi bi-eye-slash"></i>
     </button>
 </div>
             </div>
@@ -47,18 +47,18 @@
 }
 
         function togglePassword(fieldId, btn) {
-            const field = document.getElementById(fieldId);
-            const icon = btn.querySelector('i');
-            if (field.type === 'password') {
-                field.type = 'text';
-                icon.classList.remove('bi-eye');
-                icon.classList.add('bi-eye-slash');
-            } else {
-                field.type = 'password';
-                icon.classList.remove('bi-eye-slash');
-                icon.classList.add('bi-eye');
-            }
-        }
+    const field = document.getElementById(fieldId);
+    const icon = btn.querySelector('i');
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    } else {
+        field.type = 'password';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    }
+}
 
         async function login() {
             const email = document.getElementById('email').value;
