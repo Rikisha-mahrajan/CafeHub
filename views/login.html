@@ -22,37 +22,37 @@
             <div id="message"></div>
             <div class="mb-3">
                 <label class="form-label">Email</label>
-                <div class="input-group">
-    <input type="password" id="password" class="form-control" placeholder="Enter your password">
-    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
-        <i class="bi bi-eye" id="password-icon"></i>
-    </button>
-</div>
+                <input type="email" id="email" class="form-control" placeholder="Enter your email">
             </div>
             <div class="mb-3">
                 <label class="form-label">Password</label>
-                <input type="password" id="password" class="form-control" placeholder="Enter your password">
+                <div class="input-group">
+                    <input type="password" id="password" class="form-control" placeholder="Enter your password">
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password', this)">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
             </div>
             <button class="btn btn-primary" onclick="login()">Login</button>
-<p class="text-center mt-2"><a href="/views/forgot-password.html" style="color: #ff6600; font-size: 14px;">Forgot Password?</a></p>
-<p class="text-center mt-1">Don't have an account? <a href="/views/register.html">Register</a></p>
+            <p class="text-center mt-2"><a href="/views/forgot-password.html" style="color: #ff6600; font-size: 14px;">Forgot Password?</a></p>
+            <p class="text-center mt-1">Don't have an account? <a href="/views/register.html">Register</a></p>
         </div>
     </div>
 
     <script>
         function togglePassword(fieldId, btn) {
-    const field = document.getElementById(fieldId);
-    const icon = btn.querySelector('i');
-    if (field.type === 'password') {
-        field.type = 'text';
-        icon.classList.remove('bi-eye');
-        icon.classList.add('bi-eye-slash');
-    } else {
-        field.type = 'password';
-        icon.classList.remove('bi-eye-slash');
-        icon.classList.add('bi-eye');
-    }
-}
+            const field = document.getElementById(fieldId);
+            const icon = btn.querySelector('i');
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                field.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
 
         async function login() {
             const email = document.getElementById('email').value;
